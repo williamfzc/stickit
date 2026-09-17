@@ -1,0 +1,110 @@
+---
+type: Concept
+title: stickit design
+description: Positioning, storage model, interface contract, anchoring algorithm and v1 non-goals for stickit.
+---
+
+# stickit — Design
+
+Sticky notes pinned to code, exchanged between humans and AI agents.
+
+## Positioning
+
+Not a review tool (that loop is Crit's territory) and not a session-memory store
+(Mem0/Cognee territory). `stickit` is a **repo-scoped, line-anchored, managed note
+layer**: AGENTS.md is project-level memory injected wholesale into prompts; stickit
+is file/line-level memory queried on demand.
+
+## Core model
+
+```
+CLI is the protocol.  Agents only see commands; SQLite is an implementation detail.
+```
+
+- One binary, installed globally on the user's machine.
+- One global SQLite database (WAL mode), keyed by repo root resolved from `cwd`
+  (`git rev-parse --show-toplevel` semantics). Notes are therefore:
+  - shared across git worktrees of the same repo (swarm-friendly),
+  - isolated across repos by default (`--all` to search cross-repo, explicitly).
+- Machine-first interface: JSON when stdout is piped, pretty tables on a TTY.
+  Stable exit codes. No interactive prompts. No color when piped.
+
+## Interface (the whole contract)
+
+```
+stickit add <file[:line[-line]]> "body"        # --reply-to <id> for threads
+stickit ls  [path] ["keyword"]                 # --all to include archived
+stickit resolve <id>
+```
+
+Zero required flags. Everything else dissolves:
+
+| concern | mechanism |
+|---|---|
+| note type (`gotcha`/`decision`/`handoff`) | `#hashtags` parsed from body; lifecycle rules attach to them |
+| author identity | `NOTES_AGENT` env var (agents), git user.name fallback (humans) |
+| full-text search | positional keyword arg → FTS5 |
+| drift / staleness | lazy re-validation inside every read; no `doctor` verb |
+| expiry & GC | lazy, on write paths; `#handoff` notes archive when task completes |
+| backup | hidden `stickit dump` → JSONL (not part of the agent surface) |
+
+Interface-area metric: **everything an agent must learn fits in three skill lines.**
+
+## Schema (v1)
+
+```sql
+CREATE TABLE notes (
+  id          TEXT PRIMARY KEY,
+  repo        TEXT NOT NULL,        -- hash of repo root path
+  file        TEXT NOT NULL,
+  start_line  INTEGER,
+  end_line    INTEGER,
+  content_hash TEXT,                -- hash of anchored lines at write time
+  body        TEXT NOT NULL,
+  tags        TEXT,                 -- parsed from #hashtags in body
+  author      TEXT NOT NULL,        -- agent name or git user
+  status      TEXT NOT NULL DEFAULT 'active',  -- active | stale | archived
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+CREATE TABLE threads (
+  note_id TEXT NOT NULL REFERENCES notes(id),
+  seq     INTEGER NOT NULL,
+  author  TEXT NOT NULL,
+  body    TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (note_id, seq)
+);
+-- FTS5 virtual table over notes.body + threads.body
+```
+
+All writes go through the CLI in `BEGIN IMMEDIATE` transactions; readers are
+unbounded. Concurrency safety is SQLite WAL's job, not ours.
+
+## Anchoring & drift (the technical heart)
+
+An anchor is `(file, start_line, end_line, content_hash)` where the hash covers the
+exact lines at write time. Validation is **lazy on read**:
+
+1. Hash the current lines in range. Match → note is fresh; serve it.
+2. Mismatch → fuzzy re-anchor: scan ±N lines (e.g. 50) for a whitespace-insensitive
+   match of the original content. Found → silently move the anchor, mark `drifted`.
+3. Still no match → mark `stale`. Stale notes are shown flagged, never silently.
+
+`#gotcha`-style notes that go stale stay visible-but-flagged; `#handoff` notes expire
+outright. Staleness never destroys data — only `resolve`/GC does.
+
+## Deliberate non-goals (v1)
+
+- MCP server — the CLI is already agent-native; add later from the same DB.
+- Editor plugin — same store, later client.
+- Repo-committed export ("route B") — data model stays append-friendly so
+  `dump`/`rebuild` can become the git-tracked layer when sharing matters.
+- Deletion by agents — notes are resolved or archived, never erased mid-flight.
+
+## Risks & mitigations
+
+- **Data loss** (all notes live in one dotfile): `stickit dump`; document backup.
+- **Cross-repo leakage on shared machines**: strict repo scoping by default.
+- **Adoption**: ship a copy-paste skill/AGENTS.md snippet (`stickit skill`);
+  agents must degrade gracefully when the binary is absent (CI/containers).
