@@ -6,7 +6,8 @@ description: Positioning, storage model, interface contract, anchoring algorithm
 
 # stickit — Design
 
-Sticky notes pinned to code, exchanged between humans and AI agents.
+Sticky notes pinned to files — source code or plain documents — exchanged
+between humans and AI agents.
 
 ## Positioning
 
@@ -22,10 +23,19 @@ CLI is the protocol.  Agents only see commands; SQLite is an implementation deta
 ```
 
 - One binary, installed globally on the user's machine.
-- One global SQLite database (WAL mode), keyed by repo root resolved from `cwd`
-  (`git rev-parse --show-toplevel` semantics). Notes are therefore:
-  - shared across git worktrees of the same repo (swarm-friendly),
-  - isolated across repos by default (`--all` to search cross-repo, explicitly).
+- One global SQLite database (WAL mode), keyed by the repo's **common
+  directory** (`git rev-parse --git-common-dir`), never by the worktree path
+  (`--show-toplevel` differs per worktree and would fragment one repo into
+  one board per worktree). Consequences, both intended:
+  - worktrees of the same repo share one board (swarm-friendly),
+  - repos are isolated from each other by default (`--all` to search
+    cross-repo, explicitly).
+- Every write records the current branch automatically — no flag — and reads
+  show that origin, so a note pinned on `feature-x` never reads as a
+  statement about `main`. Branch-scoped *filtering* is deferred until a real
+  collaboration needs it; provenance first, hiding later.
+- Any text file qualifies. Outside a git repo, the board keys on the
+  directory itself, so a plain folder of documents behaves the same.
 - Machine-first interface: JSON when stdout is piped, pretty tables on a TTY.
   Stable exit codes. No interactive prompts. No color when piped.
 
@@ -63,6 +73,7 @@ CREATE TABLE notes (
   body        TEXT NOT NULL,
   tags        TEXT,                 -- parsed from #hashtags in body
   author      TEXT NOT NULL,        -- agent name or git user
+  branch      TEXT,                 -- branch at write time (provenance)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | stale | archived
   created_at  TEXT NOT NULL,
   updated_at  TEXT NOT NULL

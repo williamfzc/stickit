@@ -1,6 +1,6 @@
 # stickit
 
-**Sticky notes pinned to your code** — a CLI for humans and AI agents to exchange line-anchored notes.
+**Sticky notes pinned to your files** — a CLI for humans and AI agents to exchange line-anchored notes.
 
 ```
 stickit add <file[:line[-line]]> "..."
@@ -14,6 +14,8 @@ AI coding agents constantly re-learn (and re-forget) the same things about a cod
 hidden constraints, past mistakes, why-that-weird-block-exists. AGENTS.md puts all of
 that into every prompt at project level. `stickit` puts it **on the code, at the line,
 queried on demand** — a managed sticky-note layer that accumulates while agents work.
+The same loop covers plain documents: prose gets reviewed where the review belongs,
+on the line.
 
 The entire contract, as an agent skill:
 
