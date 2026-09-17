@@ -37,7 +37,8 @@ Three verbs, zero required flags. Interface area = lines of skill text.
   built into normal reads/writes — there is no `doctor` verb.
 
 See [docs/design.md](docs/design.md) for the full design: schema, anchoring algorithm, and
-deliberate non-goals.
+deliberate non-goals. The scenarios this must serve are written out in
+[docs/stories.md](docs/stories.md).
 
 ## Status
 

@@ -26,3 +26,5 @@ document when one exists.
 - Interface collapsed to three verbs with zero required flags — `add`, `ls`,
   `resolve`. Maintenance (drift detection, expiry, GC) is behavior of normal
   reads and writes, not commands.
+- User stories added in [stories](stories.md) and made the acceptance source
+  for v1: implementation work traces to a story, or it is out of scope.
