@@ -44,7 +44,20 @@ deliberate non-goals. The scenarios this must serve are written out in
 
 ## Status
 
-🚧 Design phase. The interface above is the contract we are building against.
+✅ v1 implemented and tested — `go test ./...` covers the unit surface and an
+end-to-end suite in [`e2e/`](e2e) drives the built binary through every user
+story: co-development, the review loop, shared worktrees, drift, expiry,
+isolation and concurrent writers.
+
+```sh
+make            # build ./bin/stickit
+make check      # vet + tests + docs validation
+go install .    # or install the binary wherever your agents find it
+```
+
+Agents identify themselves via `NOTES_AGENT`; the global store lives at
+`$STICKIT_DB` (default: XDG data home). `stickit skill` prints the three-line
+snippet to paste into an agent's instructions.
 
 ## License
 

@@ -28,8 +28,9 @@ CLI is the protocol.  Agents only see commands; SQLite is an implementation deta
   (`--show-toplevel` differs per worktree and would fragment one repo into
   one board per worktree). Consequences, both intended:
   - worktrees of the same repo share one board (swarm-friendly),
-  - repos are isolated from each other by default (`--all` to search
-    cross-repo, explicitly).
+  - repos are isolated from each other by default; cross-repo search is
+    deliberately out of scope for v1 (it was once sketched as `--all`,
+    which the interface contract now spends on "include archived" instead).
 - Every write records the current branch automatically — no flag — and reads
   show that origin, so a note pinned on `feature-x` never reads as a
   statement about `main`. Branch-scoped *filtering* is deferred until a real
@@ -53,28 +54,35 @@ Zero required flags. Everything else dissolves:
 |---|---|
 | note type (`gotcha`/`decision`/`handoff`) | `#hashtags` parsed from body; lifecycle rules attach to them |
 | author identity | `NOTES_AGENT` env var (agents), git user.name fallback (humans) |
-| full-text search | positional keyword arg → FTS5 |
+| full-text search | positional keyword arg → FTS5 (multi-token = AND over the note's body and replies) |
 | drift / staleness | lazy re-validation inside every read; no `doctor` verb |
 | expiry & GC | lazy, on write paths; `#handoff` notes archive when task completes |
 | backup | hidden `stickit dump` → JSONL (not part of the agent surface) |
 
 Interface-area metric: **everything an agent must learn fits in three skill lines.**
 
+Machine surface, stable across versions: stdout is JSON whenever it is piped
+(tables only on a TTY); a failed command writes exactly one `{"error": ...}`
+object to piped stderr. Exit codes: `0` ok, `1` usage error, `2` note id not
+found, `3` storage failure.
+
 ## Schema (v1)
 
 ```sql
 CREATE TABLE notes (
   id          TEXT PRIMARY KEY,
-  repo        TEXT NOT NULL,        -- hash of repo root path
-  file        TEXT NOT NULL,
-  start_line  INTEGER,
+  repo        TEXT NOT NULL,        -- hash of board root path
+  file        TEXT NOT NULL,        -- worktree-relative, slash-separated
+  start_line  INTEGER,              -- NULL for file-level notes
   end_line    INTEGER,
-  content_hash TEXT,                -- hash of anchored lines at write time
+  content_hash TEXT,                -- hash of the exact anchored lines
+  norm_hash   TEXT,                 -- whitespace-collapsed hash, for re-anchoring
   body        TEXT NOT NULL,
   tags        TEXT,                 -- parsed from #hashtags in body
   author      TEXT NOT NULL,        -- agent name or git user
   branch      TEXT,                 -- branch at write time (provenance)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | stale | archived
+  drifted_at  TEXT,                 -- set when an anchor silently moved
   created_at  TEXT NOT NULL,
   updated_at  TEXT NOT NULL
 );
@@ -87,6 +95,7 @@ CREATE TABLE threads (
   PRIMARY KEY (note_id, seq)
 );
 -- FTS5 virtual table over notes.body + threads.body
+-- (columns: body, kind UNINDEXED, ref_id UNINDEXED)
 ```
 
 All writes go through the CLI in `BEGIN IMMEDIATE` transactions; readers are
@@ -99,11 +108,15 @@ exact lines at write time. Validation is **lazy on read**:
 
 1. Hash the current lines in range. Match → note is fresh; serve it.
 2. Mismatch → fuzzy re-anchor: scan ±N lines (e.g. 50) for a whitespace-insensitive
-   match of the original content. Found → silently move the anchor, mark `drifted`.
+   match of the original content. Found → silently move the anchor, mark `drifted`,
+   and re-baseline the hashes to the new position so the next read is a pure read.
 3. Still no match → mark `stale`. Stale notes are shown flagged, never silently.
 
-`#gotcha`-style notes that go stale stay visible-but-flagged; `#handoff` notes expire
-outright. Staleness never destroys data — only `resolve`/GC does.
+Staleness is a live view, not history: a stale note whose content matches again is
+restored to `active`. Resolved (archived) notes are terminal — later reads never
+re-stale or resurrect them. `#gotcha`-style notes that go stale stay
+visible-but-flagged; `#handoff` notes expire outright. Staleness never destroys
+data — only `resolve`/GC does.
 
 ## Deliberate non-goals (v1)
 

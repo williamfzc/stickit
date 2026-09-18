@@ -13,6 +13,44 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-18 (v1 implemented)
+
+- v1 implemented and tested: `add` / `ls` / `resolve` plus the auxiliary
+  `skill` and `dump`. E2E suite in `e2e/` drives the built binary through
+  every [story](stories.md) shape; unit tests cover anchoring, pathspecs,
+  store lifecycle and flag parsing. `scripts/run_checks.sh` now runs
+  `go vet` and `go test` alongside the docs validation.
+- Exit codes fixed as contract: `0` ok, `1` usage, `2` note not found,
+  `3` store error. Failures emit exactly one `{"error": ...}` JSON object
+  on piped stderr — including pre-parse failures (no/unknown command),
+  which previously printed plain usage text. Canonical statement in
+  [design](design.md).
+- Named conflict, then resolved: design.md once used `--all` for both
+  "cross-repo search" and "include archived". The interface contract keeps
+  `--all` = include archived; cross-repo search is out of scope for v1
+  (listing another board's files would lazily stale them against a worktree
+  that cannot contain those files).
+- Schema in [design](design.md) synced with the implementation: `norm_hash`
+  and `drifted_at` columns documented; drift is recorded via `drifted_at`,
+  not as a status.
+- Anchoring semantics pinned down: a drifted anchor re-baselines its hashes
+  so a steady-state read performs no write; a stale note whose content
+  matches again returns to `active`; archived notes are terminal. A
+  multi-token keyword is an AND at note level (across body and replies) —
+  FTS5's row-level AND would otherwise miss notes whose tokens split
+  between note and reply.
+- Worktree fix: user paths are made relative to the working tree
+  (`--show-toplevel`), not the board root — keying by common dir while
+  resolving paths against the main root rejected every add from a linked
+  worktree. All board paths are canonicalized through symlinks (macOS
+  `/tmp` → `/private/tmp`) so board keys cannot fragment by path form.
+- Branch provenance survives unborn branches (`git branch --show-current`
+  instead of `--abbrev-ref HEAD`, which fails before the first commit).
+- Cold-start hardening: concurrent first opens of a fresh database retry
+  through the WAL/schema initialization race, which `busy_timeout` alone
+  does not cover (a `journal_mode(WAL)` switch can fail fast with
+  SQLITE_BUSY).
+
 ### 2026-09-18
 
 - Repository chartered. Name `stickit` chosen over `pinote`, `notepin` and
