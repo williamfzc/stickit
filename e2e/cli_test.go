@@ -28,12 +28,28 @@ func TestHelpPrintsUsage(t *testing.T) {
 func TestSkillPrintsSnippet(t *testing.T) {
 	env := newEnv(t)
 	dir := newPlainDir(t)
-	stdout, _, code := run(t, dir, env, "skill")
-	if code != 0 {
-		t.Fatalf("skill: exit %d, want 0", code)
+	for _, arg := range []string{"--skill", "skill"} { // `skill` is an alias
+		stdout, _, code := run(t, dir, env, arg)
+		if code != 0 {
+			t.Fatalf("stickit %s: exit %d, want 0", arg, code)
+		}
+		if !strings.Contains(stdout, "stickit ls") {
+			t.Fatalf("stickit %s: no contract lines in stdout: %q", arg, stdout)
+		}
 	}
-	if strings.TrimSpace(stdout) == "" {
-		t.Fatal("skill output must not be empty")
+}
+
+// --help must route agents to the skill: the three-line contract is the
+// whole onboarding, so the flag has to be visible from the options block.
+func TestHelpRoutesAgentsToSkill(t *testing.T) {
+	env := newEnv(t)
+	dir := newPlainDir(t)
+	stdout, _, code := run(t, dir, env, "--help")
+	if code != 0 {
+		t.Fatalf("--help: exit %d, want 0", code)
+	}
+	if !strings.Contains(stdout, "stickit --skill") {
+		t.Fatalf("--help does not mention --skill: %q", stdout)
 	}
 }
 

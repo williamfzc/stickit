@@ -96,6 +96,9 @@ func TestRunExitCodesAndErrorJSON(t *testing.T) {
 	if code, out, _ := run("--help"); code != ExitOK || !strings.Contains(out, "Usage") {
 		t.Errorf("--help: code = %d", code)
 	}
+	if code, out, _ := run("--skill"); code != ExitOK || !strings.Contains(out, "stickit ls") {
+		t.Errorf("--skill: code = %d, output = %q", code, out)
+	}
 	if code, _, _ := run("bogus"); code != ExitUsage {
 		t.Errorf("unknown command: code = %d, want %d", code, ExitUsage)
 	}

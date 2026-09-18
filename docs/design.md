@@ -130,5 +130,6 @@ data — only `resolve`/GC does.
 
 - **Data loss** (all notes live in one dotfile): `stickit dump`; document backup.
 - **Cross-repo leakage on shared machines**: strict repo scoping by default.
-- **Adoption**: ship a copy-paste skill/AGENTS.md snippet (`stickit skill`);
-  agents must degrade gracefully when the binary is absent (CI/containers).
+- **Adoption**: ship a copy-paste skill/AGENTS.md snippet (`stickit --skill`,
+  routed to from `--help`); agents must degrade gracefully when the binary is
+  absent (CI/containers).

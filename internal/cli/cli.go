@@ -28,7 +28,7 @@ Usage:
   stickit resolve <id>
 
 Auxiliary (not part of the agent surface):
-  stickit skill    print the agent skill snippet
+  stickit --skill  print the agent skill snippet
   stickit dump     JSONL backup of every note
 
 In ls, an argument naming an existing file or directory (or containing /)
@@ -36,7 +36,10 @@ filters by path; anything else is a full-text keyword. --all includes
 archived notes.
 
 JSON on a piped stdout, a table on a terminal. Exit codes: 0 ok, 1 usage,
-2 not found, 3 store error.`
+2 not found, 3 store error.
+
+Is an agent driving this tool? Read the three-line contract before use:
+  stickit --skill`
 
 const skillText = `Before editing a file:           stickit ls <file>
 Learned something non-obvious:   stickit add <file:line> "... #gotcha"
@@ -53,6 +56,10 @@ func Run(argv []string, stdout, stderr io.Writer) int {
 	case "-h", "--help", "help":
 		fmt.Fprintln(stdout, usage)
 		return ExitOK
+	case "--skill":
+		// The documented spelling; bare `skill` below stays as an alias.
+		fmt.Fprint(stdout, skillText)
+		return ExitOK
 	case "add":
 		return cmdAdd(argv[1:], o, stderr)
 	case "ls":
@@ -60,6 +67,7 @@ func Run(argv []string, stdout, stderr io.Writer) int {
 	case "resolve":
 		return cmdResolve(argv[1:], o, stderr)
 	case "skill":
+		// Undocumented alias of --skill, kept for earlier callers.
 		fmt.Fprint(stdout, skillText)
 		return ExitOK
 	case "dump":

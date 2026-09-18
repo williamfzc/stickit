@@ -56,8 +56,9 @@ go install .    # or install the binary wherever your agents find it
 ```
 
 Agents identify themselves via `NOTES_AGENT`; the global store lives at
-`$STICKIT_DB` (default: XDG data home). `stickit skill` prints the three-line
-snippet to paste into an agent's instructions.
+`$STICKIT_DB` (default: XDG data home). `stickit --skill` prints the
+three-line snippet to paste into an agent's instructions (`--help` points
+agents there).
 
 ## License
 
