@@ -49,16 +49,27 @@ end-to-end suite in [`e2e/`](e2e) drives the built binary through every user
 story: co-development, the review loop, shared worktrees, drift, expiry,
 isolation and concurrent writers.
 
+One CLI install serves every repo on the machine:
+
 ```sh
-make            # build ./bin/stickit
-make check      # vet + tests + docs validation
-go install .    # or install the binary wherever your agents find it
+curl -fsSL https://raw.githubusercontent.com/williamfzc/stickit/main/install.sh | sh
 ```
+
+From a checkout, `make` builds `./bin/stickit`, `make check` runs
+vet + tests + docs validation, and `go install .` installs the binary.
 
 Agents identify themselves via `NOTES_AGENT`; the global store lives at
 `$STICKIT_DB` (default: XDG data home). `stickit --skill` prints the
 three-line snippet to paste into an agent's instructions (`--help` points
 agents there).
+
+## Adopting in a repo
+
+Nothing to configure: install the binary, then point agents at the
+contract — paste `stickit --skill` (three lines) into the repo's
+AGENTS.md, or rely on the agent finding it through `stickit --help`.
+To make the review loop close mechanically instead of on discipline,
+install the [pre-commit gate](docs/hooks.md).
 
 ## License
 

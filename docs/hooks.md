@@ -25,11 +25,13 @@ body, and the two ways to handle one:
 
 ## Install (per repo)
 
-Copy `hooks/pre-commit` from the stickit checkout into the target repo,
-make it executable, and point git at it:
+Fetch the hook into the target repo, make it executable, and point git
+at it — from a stickit checkout or straight from the repository:
 
 ```sh
-mkdir -p hooks && cp <stickit-checkout>/hooks/pre-commit hooks/
+mkdir -p hooks
+curl -fsSL https://raw.githubusercontent.com/williamfzc/stickit/main/hooks/pre-commit -o hooks/pre-commit
+# or: cp <stickit-checkout>/hooks/pre-commit hooks/
 chmod +x hooks/pre-commit
 git config core.hooksPath hooks
 ```

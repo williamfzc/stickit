@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added `install.sh`: the one-line install (`curl … | sh`). Prefers a
+  prebuilt release asset, falls back to building the checkout it runs in,
+  then `go install …@latest`; destination is `$STICKIT_INSTALL_DIR`,
+  `$GOBIN` or `~/.local/bin`, verified via `stickit --skill`.
+- README gained the adoption loop: install, point agents at
+  `stickit --skill`, optionally the pre-commit gate. This repo's own
+  AGENTS.md now tells agents to use stickit here.
 - Notes record the git commit (HEAD) at write time alongside the branch:
   served as `commit` in every JSON note (null outside git and before the
   first commit), short hash in TTY tables, carried in `dump`. Existing

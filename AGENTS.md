@@ -24,6 +24,10 @@ name the conflict instead of silently picking one.
   index, ordinary relative links. `scripts/validate_docs.py` enforces this.
 - Concurrency safety belongs to SQLite (WAL, immediate transactions) — never
   ad-hoc locking in the CLI.
+- Cross-agent, line-level knowledge (a gotcha, a decision, where you left
+  off) belongs in stickit, not in code comments or chat:
+  `stickit --skill` is the whole contract. Resolve what you address —
+  the pre-commit gate refuses commits while the board has open notes.
 
 ## When you finish
 
