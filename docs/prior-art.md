@@ -38,6 +38,40 @@ from this page is adopted only per the rule in [stories](stories.md)
 | Docs / Figma | comment / thread | open / resolved (resolved kept in history) | anyone with edit | none |
 | Linear | issue | typed categories: started / completed / canceled | mover | closed states are typed |
 
+## Per-product details worth keeping
+
+Raw mechanism notes, so the survey survives without re-fetching:
+
+- **GitHub**: a review is drafted *privately* (pending) and submitted as
+  one verdict — comment, approve, or request changes; the first two may
+  block merging under branch settings, and unresolved conversations can
+  be set to block independently. Line comments anchor to a diff position:
+  new commits mark them `Outdated` (visible, collapsible, never
+  auto-resolved). Approvals are *dismissed* when changes are significant,
+  forcing re-review. A reviewer can attach a **suggested change** — an
+  actionable diff the author accepts with one click; adopting it
+  auto-resolves the thread.
+- **GitLab**: threads resolve/unresolve manually (no auto-resolution);
+  MR diffs are versioned and comparable — you review against a named
+  snapshot. Approval *rules* (minimum count, eligible approvers) are
+  separate from threads. Draft state gates merging, not editing.
+- **Gerrit**: reviews attach to a **patchset**; pushing a new one resets
+  votes (configurable) — re-review is the default, not the exception.
+  `-2` hard-blocks submit regardless of other votes; CI posts a separate
+  `Verified` label. `NEW` / `MERGED` / `ABANDONED` are the only change
+  states (DRAFT was removed in 2.15 in favor of WIP/private changes).
+- **Reviewable**: a discussion resolves only when *every participant*
+  marks it satisfied — replying is never enough. Its discussion matrix
+  groups by to-reply / unresolved / resolved; when a revision changes
+  under a discussion it resurfaces rather than silently staying closed.
+  Descended from Google's Critique, where every comment expects a
+  disposition and intensity lives in text conventions (`nit:`).
+- **Docs / Figma**: resolve is stored as a special reply (Docs API models
+  resolution as a flag on a reply), resolved threads collapse but stay in
+  a history view forever. @-assignment converts a comment into an owned
+  action item tracked until resolved; Figma threads anchor to canvas
+  points with the same open/resolved pair.
+
 ## Mechanisms that recur
 
 1. **Open/closed binary at the leaf.** Every product converges on two
