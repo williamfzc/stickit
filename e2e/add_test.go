@@ -15,7 +15,7 @@ func TestAddServesFullNoteObject(t *testing.T) {
 	stdout := mustRun(t, repo, env, "add", "file.go:2", "mind the gap #gotcha")
 
 	want := []string{"id", "file", "start_line", "end_line", "status", "drifted",
-		"tags", "author", "branch", "body", "created_at", "updated_at", "replies"}
+		"tags", "author", "branch", "commit", "body", "created_at", "updated_at", "replies"}
 	var keys map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(stdout), &keys); err != nil {
 		t.Fatalf("decode add output %q: %v", stdout, err)
@@ -48,6 +48,7 @@ func TestAddServesFullNoteObject(t *testing.T) {
 		t.Fatalf("add: author = %q, want NOTES_AGENT %q", n.Author, agentName)
 	}
 	requireBranch(t, n, "main", "add")
+	requireCommit(t, n, git(t, repo, env, "rev-parse", "HEAD"), "add")
 	if n.Body != "mind the gap #gotcha" {
 		t.Fatalf("add: body = %q", n.Body)
 	}
@@ -70,6 +71,7 @@ func TestAddFileLevelNoteOutsideGit(t *testing.T) {
 	requireNoAnchor(t, n, "file-level add")
 	requireStatus(t, n, "active", "file-level add")
 	requireBranch(t, n, "", "file-level add")
+	requireCommit(t, n, "", "file-level add")
 	if n.Author != agentName {
 		t.Fatalf("file-level add: author = %q, want %q", n.Author, agentName)
 	}

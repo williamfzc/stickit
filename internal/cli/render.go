@@ -89,14 +89,21 @@ func loc(n store.Note) string {
 }
 
 func provenance(n store.Note) string {
-	branch := ""
+	origin := ""
 	if n.Branch != nil {
-		branch = "@" + *n.Branch
+		origin += "@" + *n.Branch
+	}
+	if n.Commit != nil {
+		short := *n.Commit
+		if len(short) > 7 {
+			short = short[:7]
+		}
+		origin += "@" + short
 	}
 	if len(n.Tags) > 0 {
-		return n.Author + branch + " " + "#" + strings.Join(n.Tags, " #")
+		return n.Author + origin + " " + "#" + strings.Join(n.Tags, " #")
 	}
-	return n.Author + branch
+	return n.Author + origin
 }
 
 // oneLine flattens a body for the table and keeps it short.

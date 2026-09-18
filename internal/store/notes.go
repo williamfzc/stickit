@@ -31,7 +31,8 @@ type Note struct {
 	Drifted   bool     `json:"drifted"`
 	Tags      []string `json:"tags"`
 	Author    string   `json:"author"`
-	Branch    *string  `json:"branch"` // null outside git
+	Branch    *string  `json:"branch"` // null outside git and before the first commit
+	Commit    *string  `json:"commit"` // HEAD at write time; null where branch is
 	Body      string   `json:"body"`
 	CreatedAt string   `json:"created_at"`
 	UpdatedAt string   `json:"updated_at"`
@@ -62,6 +63,7 @@ type NewNote struct {
 	Body     string
 	Author   string
 	Branch   string
+	Commit   string
 }
 
 var tagRe = regexp.MustCompile(`#[A-Za-z0-9][A-Za-z0-9_-]*`)
@@ -112,12 +114,12 @@ func (s *Store) AddNote(n NewNote) (Note, error) {
 	ts := now()
 	_, err = tx.Exec(`INSERT INTO notes
 		(id, repo, file, start_line, end_line, content_hash, norm_hash,
-		 body, tags, author, branch, status, created_at, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?, 'active', ?, ?)`,
+		 body, tags, author, branch, "commit", status, created_at, updated_at)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'active', ?, ?)`,
 		id, n.RepoKey, n.File, nullInt(n.Start), nullInt(n.End),
 		nullStr(n.Hash), nullStr(n.NormHash), n.Body,
 		nullStr(strings.Join(ParseTags(n.Body), " ")),
-		n.Author, nullStr(n.Branch), ts, ts)
+		n.Author, nullStr(n.Branch), nullStr(n.Commit), ts, ts)
 	if err != nil {
 		return Note{}, err
 	}
@@ -547,14 +549,14 @@ func (s *Store) DumpJSONL(w io.Writer) error {
 
 func (s *Store) getNote(repoKey, id string) (Note, error) {
 	row := s.DB.QueryRow(`SELECT id, file, start_line, end_line, status, drifted_at,
-		tags, author, branch, body, created_at, updated_at
+		tags, author, branch, "commit", body, created_at, updated_at
 		FROM notes WHERE id = ? AND repo = ?`, id, repoKey)
 	var n Note
 	var tags, driftedAt sql.NullString
 	var start, end sql.NullInt64
-	var branch sql.NullString
+	var branch, commit sql.NullString
 	if err := row.Scan(&n.ID, &n.File, &start, &end, &n.Status, &driftedAt,
-		&tags, &n.Author, &branch, &n.Body, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		&tags, &n.Author, &branch, &commit, &n.Body, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Note{}, ErrNotFound
 		}
@@ -576,6 +578,10 @@ func (s *Store) getNote(repoKey, id string) (Note, error) {
 	if branch.Valid {
 		s := branch.String
 		n.Branch = &s
+	}
+	if commit.Valid {
+		s := commit.String
+		n.Commit = &s
 	}
 	replies, err := s.replies(id)
 	if err != nil {

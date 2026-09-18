@@ -13,6 +13,18 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-18 (commit provenance)
+
+- Notes now record the HEAD revision at write time, next to the branch.
+  Not a new concept: it is the same provenance axis at finer grain, and
+  the [prior art](prior-art.md) survey backs it (Gerrit pins votes to a
+  patchset; GitHub dismisses approvals that a revision change made
+  stale). Automatic, zero flag, null outside git and before the first
+  commit — mirroring `branch`. Filtering by revision stays deferred.
+  The `notes.commit` column is added by an idempotent guarded ALTER on
+  open (the name is a reserved word, so it is quoted in SQL); older
+  databases migrate in place, old notes serving a null commit.
+
 ### 2026-09-18 (pre-commit gate)
 
 - Shipped `hooks/pre-commit` as a client-side enforcement hook and enabled

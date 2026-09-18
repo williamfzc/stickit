@@ -204,6 +204,7 @@ type note struct {
 	Tags      []string `json:"tags"`
 	Author    string   `json:"author"`
 	Branch    *string  `json:"branch"` // null outside git
+	Commit    *string  `json:"commit"` // null wherever branch is
 	Body      string   `json:"body"`
 	CreatedAt string   `json:"created_at"`
 	UpdatedAt string   `json:"updated_at"`
@@ -325,6 +326,20 @@ func requireBranch(t *testing.T, n note, want, what string) {
 	}
 	if n.Branch == nil || *n.Branch != want {
 		t.Fatalf("%s: branch = %v, want %q", what, n.Branch, want)
+	}
+}
+
+// requireCommit asserts the commit provenance; want "" means null.
+func requireCommit(t *testing.T, n note, want, what string) {
+	t.Helper()
+	if want == "" {
+		if n.Commit != nil {
+			t.Fatalf("%s: commit = %q, want null", what, *n.Commit)
+		}
+		return
+	}
+	if n.Commit == nil || *n.Commit != want {
+		t.Fatalf("%s: commit = %v, want %q", what, n.Commit, want)
 	}
 }
 

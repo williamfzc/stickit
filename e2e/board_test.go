@@ -69,6 +69,42 @@ func TestWorktreesShareOneBoard(t *testing.T) {
 	requireBranch(t, all[onMain.ID], "main", "main note read from main")
 }
 
+// Commit provenance is a write-time snapshot: each note keeps the HEAD it
+// was pinned at, even after the branch moves on; a repository before its
+// first commit records none.
+func TestCommitProvenanceIsWriteTime(t *testing.T) {
+	env := newEnv(t)
+	repo := newGitRepo(t, env)
+	writeLines(t, filepath.Join(repo, "file.go"), "one", "two", "three", "four", "five")
+
+	first := mustAdd(t, repo, env, "file.go:1", "pinned at the seed commit")
+	firstCommit := git(t, repo, env, "rev-parse", "HEAD")
+	requireCommit(t, first, firstCommit, "first add")
+
+	writeLines(t, filepath.Join(repo, "file.go"), "one", "two", "three", "four", "five", "six")
+	git(t, repo, env, "add", "file.go")
+	git(t, repo, env, "commit", "-m", "grow the file")
+	secondCommit := git(t, repo, env, "rev-parse", "HEAD")
+	if secondCommit == firstCommit {
+		t.Fatal("test bug: HEAD did not move")
+	}
+
+	second := mustAdd(t, repo, env, "file.go:6", "pinned at the second commit")
+	requireCommit(t, second, secondCommit, "second add")
+
+	all := byID(t, mustList(t, repo, env, "file.go"))
+	requireCommit(t, all[first.ID], firstCommit, "old note after HEAD moved")
+	requireCommit(t, all[second.ID], secondCommit, "new note")
+
+	// An unborn repository has no revision to record.
+	unborn := t.TempDir()
+	git(t, unborn, env, "init", "-b", "main")
+	writeLines(t, filepath.Join(unborn, "file.go"), "one")
+	u := mustAdd(t, unborn, env, "file.go:1", "no commits yet")
+	requireBranch(t, u, "main", "unborn repo")
+	requireCommit(t, u, "", "unborn repo")
+}
+
 // Author identity: NOTES_AGENT wins; without it the repo's git user.name
 // applies; outside git, "unknown".
 func TestAuthorResolution(t *testing.T) {

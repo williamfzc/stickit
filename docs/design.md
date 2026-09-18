@@ -31,9 +31,11 @@ CLI is the protocol.  Agents only see commands; SQLite is an implementation deta
   - repos are isolated from each other by default; cross-repo search is
     deliberately out of scope for v1 (it was once sketched as `--all`,
     which the interface contract now spends on "include archived" instead).
-- Every write records the current branch automatically — no flag — and reads
-  show that origin, so a note pinned on `feature-x` never reads as a
-  statement about `main`. Branch-scoped *filtering* is deferred until a real
+- Every write records the current branch and HEAD commit automatically — no
+  flag — and reads show that origin, so a note pinned on `feature-x` never
+  reads as a statement about `main`, and one pinned at commit `abc1234`
+  stays a statement about that revision even after the branch moves on.
+  Branch-scoped *filtering* is deferred until a real
   collaboration needs it; provenance first, hiding later.
 - Any text file qualifies. Outside a git repo, the board keys on the
   directory itself, so a plain folder of documents behaves the same.
@@ -81,6 +83,7 @@ CREATE TABLE notes (
   tags        TEXT,                 -- parsed from #hashtags in body
   author      TEXT NOT NULL,        -- agent name or git user
   branch      TEXT,                 -- branch at write time (provenance)
+  commit      TEXT,                 -- HEAD revision at write time (provenance)
   status      TEXT NOT NULL DEFAULT 'active',  -- active | stale | archived
   drifted_at  TEXT,                 -- set when an anchor silently moved
   created_at  TEXT NOT NULL,

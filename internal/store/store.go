@@ -89,8 +89,48 @@ func locked(err error) bool {
 func (s *Store) Close() error { return s.DB.Close() }
 
 func (s *Store) migrate() error {
-	_, err := s.DB.Exec(schema)
-	return err
+	if _, err := s.DB.Exec(schema); err != nil {
+		return err
+	}
+	return addColumn(s.DB, "notes", "commit", "TEXT")
+}
+
+// addColumn idempotently adds one column: CREATE TABLE IF NOT EXISTS only
+// runs on fresh databases, so databases opened by earlier versions need the
+// ALTER. Two openers can race past the check; whoever loses the ALTER sees
+// the column the winner just added, which is success.
+func addColumn(db *sql.DB, table, column, decl string) error {
+	has := func() (bool, error) {
+		rows, err := db.Query(`PRAGMA table_info(` + table + `)`)
+		if err != nil {
+			return false, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var cid int
+			var name, typ string
+			var notNull, pk int
+			var dflt sql.NullString
+			if err := rows.Scan(&cid, &name, &typ, &notNull, &dflt, &pk); err != nil {
+				return false, err
+			}
+			if name == column {
+				return true, nil
+			}
+		}
+		return false, rows.Err()
+	}
+	present, err := has()
+	if err != nil || present {
+		return err
+	}
+	if _, err := db.Exec(`ALTER TABLE ` + table + ` ADD COLUMN "` + column + `" ` + decl); err != nil {
+		if present, e := has(); e == nil && present {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 const schema = `
@@ -106,6 +146,7 @@ CREATE TABLE IF NOT EXISTS notes (
   tags         TEXT,                 -- space-joined, parsed from #hashtags
   author       TEXT NOT NULL,        -- agent name or git user
   branch       TEXT,                 -- branch at write time (provenance)
+  "commit"     TEXT,                 -- HEAD revision at write time (provenance)
   status       TEXT NOT NULL DEFAULT 'active',  -- active | stale | archived
   drifted_at   TEXT,                 -- set when an anchor silently moved
   created_at   TEXT NOT NULL,

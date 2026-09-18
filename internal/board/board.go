@@ -33,6 +33,9 @@ type Board struct {
 	// Branch is the checked-out branch ("" outside git, "HEAD" when
 	// detached).
 	Branch string
+	// Commit is the HEAD revision at detection time ("" outside git and
+	// before the first commit) — the finer half of write-time provenance.
+	Commit string
 }
 
 // Detect resolves the board for the current working directory.
@@ -66,12 +69,16 @@ func Detect() (Board, error) {
 					branch = abbrev
 				}
 			}
+			// rev-parse HEAD fails before the first commit; the commit half
+			// of provenance is then simply absent, like it is outside git.
+			commit, _ := git(cwd, "rev-parse", "HEAD")
 			return Board{
 				Root:     root,
 				TopLevel: top,
 				Key:      key(root),
 				InGit:    true,
 				Branch:   branch,
+				Commit:   commit,
 			}, nil
 		}
 	}

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Notes record the git commit (HEAD) at write time alongside the branch:
+  served as `commit` in every JSON note (null outside git and before the
+  first commit), short hash in TTY tables, carried in `dump`. Existing
+  databases are migrated in place on open.
 - Added `hooks/pre-commit`, an installable git gate that refuses commits
   while the repo's board has unprocessed notes (anything not archived).
   Fails open when stickit is absent or broken. See

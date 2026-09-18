@@ -137,6 +137,7 @@ func cmdAdd(argv []string, o *out, stderr io.Writer) int {
 		Body:    body,
 		Author:  boardAuthor(b),
 		Branch:  b.Branch,
+		Commit:  b.Commit,
 	}
 	if t.Start > 0 {
 		lines, err := readLines(t.AbsPath)
