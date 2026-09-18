@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -256,7 +257,9 @@ func TestDumpIsJSONL(t *testing.T) {
 	}
 }
 
-// On a TTY, ls renders a table instead of JSON (macOS BSD script syntax).
+// On a TTY, ls renders a table instead of JSON. script(1) allocates that
+// TTY; BSD and util-linux speak different syntaxes, so the invocation is
+// per-platform.
 func TestTTYPrintsTable(t *testing.T) {
 	script, err := exec.LookPath("script")
 	if err != nil {
@@ -267,7 +270,12 @@ func TestTTYPrintsTable(t *testing.T) {
 	writeLines(t, filepath.Join(dir, "file.go"), "one", "two")
 	n := mustAdd(t, dir, env, "file.go:1", "table row #gotcha")
 
-	cmd := exec.Command(script, "-q", "/dev/null", binPath, "ls")
+	var cmd *exec.Cmd
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command(script, "-q", "/dev/null", binPath, "ls")
+	} else {
+		cmd = exec.Command(script, "-qec", binPath+" ls", "/dev/null")
+	}
 	cmd.Dir = dir
 	cmd.Env = env
 	out, err := cmd.Output()
