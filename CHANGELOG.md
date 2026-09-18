@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 - 2026-09-18
 
 - Added `install.sh`: the one-line install (`curl … | sh`). Prefers a
   prebuilt release asset, falls back to building the checkout it runs in,
