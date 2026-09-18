@@ -13,6 +13,28 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-18 (pre-commit gate)
+
+- Shipped `hooks/pre-commit` as a client-side enforcement hook and enabled
+  it in this repo via `core.hooksPath`. Semantics pinned: any non-archived
+  note on the committing repo's board blocks any commit — the review-loop
+  exit condition ("board is clear") stated literally. Diff-intersection
+  scoping was considered and dropped as harder to reason about. The gate
+  fails open (binary absent or store broken → commit passes) and never
+  advertises `--no-verify` to the reader; that bypass stays documented here
+  and in [hooks](hooks.md) for humans. Canonical statement in
+  [hooks](hooks.md).
+
+### 2026-09-18 (--skill added)
+
+- Added the `--skill` root flag (print the agent skill snippet, exit 0) and
+  an agent-routing line at the end of `--help`. Named justification: the
+  existing `skill` verb could not carry discoverability — an agent skims the
+  options block of `--help`, where a "print X and exit" flag is the
+  convention (modeled on `herdr --skill`). The verb stays as an undocumented
+  alias so earlier callers keep working; one concept, one documented
+  spelling.
+
 ### 2026-09-18 (v1 implemented)
 
 - v1 implemented and tested: `add` / `ls` / `resolve` plus the auxiliary

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added `hooks/pre-commit`, an installable git gate that refuses commits
+  while the repo's board has unprocessed notes (anything not archived).
+  Fails open when stickit is absent or broken. See
+  [docs/hooks.md](docs/hooks.md).
+- Added `--skill`: prints the agent skill snippet and exits — the canonical
+  spelling, visible from `--help`, which now routes agents to it. The bare
+  `skill` verb still works as an undocumented alias.
 - Implemented the v1 CLI: `add` (with `--reply-to`), `ls` (with `--all`),
   `resolve`, plus auxiliary `skill` and `dump`. Full JSON machine surface
   on piped stdout, tables on a TTY.

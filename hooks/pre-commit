@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""pre-commit gate: refuse commits while the board has unprocessed notes.
+
+A client of the stickit CLI, not part of it — the contract stays
+add / ls / resolve. Any note the default `stickit ls` returns (active or
+stale; only resolve archives a note) counts as unprocessed. Fails open
+when the binary is absent or the store is broken: the gate enforces
+discipline, it must not wedge work.
+"""
+import json
+import shutil
+import subprocess
+import sys
+
+BODY_LIMIT = 90
+
+
+def main():
+    stickit = shutil.which("stickit")
+    if not stickit:
+        return 0
+    result = subprocess.run([stickit, "ls"], capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.stderr.write(
+            "stickit pre-commit: ls failed (%s); skipping the check\n"
+            % result.stderr.strip()
+        )
+        return 0
+    try:
+        notes = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return 0
+    if not notes:
+        return 0
+
+    print(
+        "stickit: %d note(s) still open on this board — handle them before"
+        " committing:" % len(notes)
+    )
+    for n in notes:
+        where = n["file"]
+        if n.get("start_line"):
+            where += ":%d" % n["start_line"]
+        body = " ".join(n["body"].split())
+        if len(body) > BODY_LIMIT:
+            body = body[: BODY_LIMIT - 3] + "..."
+        print("  %s  %-30s [%s] by %s" % (n["id"], where, n["status"], n.get("author", "")))
+        print("      %s" % body)
+    print("For each note: address it, then: stickit resolve <id>")
+    print("If a note is wrong, say so in its thread first:")
+    print("  stickit add --reply-to <id> \"why this does not apply\"")
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
