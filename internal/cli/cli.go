@@ -57,7 +57,6 @@ func Run(argv []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, usage)
 		return ExitOK
 	case "--skill":
-		// The documented spelling; bare `skill` below stays as an alias.
 		fmt.Fprint(stdout, skillText)
 		return ExitOK
 	case "add":
@@ -66,10 +65,6 @@ func Run(argv []string, stdout, stderr io.Writer) int {
 		return cmdLs(argv[1:], o, stderr)
 	case "resolve":
 		return cmdResolve(argv[1:], o, stderr)
-	case "skill":
-		// Undocumented alias of --skill, kept for earlier callers.
-		fmt.Fprint(stdout, skillText)
-		return ExitOK
 	case "dump":
 		return cmdDump(o, stderr)
 	default:

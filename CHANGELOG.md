@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Removed the undocumented `skill` verb alias (shipped in 0.1.0):
+  `stickit --skill` is the only spelling of the agent contract snippet.
+
 ## 0.1.0 - 2026-09-18
 
 - Added `install.sh`: the one-line install (`curl … | sh`). Prefers a

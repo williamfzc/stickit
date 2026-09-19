@@ -13,6 +13,15 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-19 (skill alias trimmed)
+
+- Removed the bare `skill` verb — the undocumented alias `--skill` carried
+  since the same day it shipped. Audit against the [prior
+  art](prior-art.md) found it was the only surface that was neither
+  convention (bare `help` stays; git/go/docker all accept it) nor
+  load-bearing (docs, gate and AGENTS.md all use `--skill`). With zero
+  external users the removal is free; one concept, one spelling.
+
 ### 2026-09-18 (commit provenance)
 
 - Notes now record the HEAD revision at write time, next to the branch.

@@ -29,14 +29,12 @@ func TestHelpPrintsUsage(t *testing.T) {
 func TestSkillPrintsSnippet(t *testing.T) {
 	env := newEnv(t)
 	dir := newPlainDir(t)
-	for _, arg := range []string{"--skill", "skill"} { // `skill` is an alias
-		stdout, _, code := run(t, dir, env, arg)
-		if code != 0 {
-			t.Fatalf("stickit %s: exit %d, want 0", arg, code)
-		}
-		if !strings.Contains(stdout, "stickit ls") {
-			t.Fatalf("stickit %s: no contract lines in stdout: %q", arg, stdout)
-		}
+	stdout, _, code := run(t, dir, env, "--skill")
+	if code != 0 {
+		t.Fatalf("--skill: exit %d, want 0", code)
+	}
+	if !strings.Contains(stdout, "stickit ls") {
+		t.Fatalf("--skill: no contract lines in stdout: %q", stdout)
 	}
 }
 
