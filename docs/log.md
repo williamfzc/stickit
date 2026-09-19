@@ -13,6 +13,18 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-19 (subtraction)
+
+- The periphery had outgrown the product; cut back. The gate's policy
+  options and the pre-tool-use injection client — both built before any
+  real use, the client before its runtime schema was even verified —
+  are removed. The gate returns to one simple script whose copied form
+  the adopter edits as their own; swarm scoping, injection wiring and
+  whatever comes next are the adopter's scripts around the three verbs,
+  not product surface. The expectation pinned down: an agent installs
+  the CLI, reads `--help`, and knows both how to use it and how to wire
+  it into a project — much of that wiring is theirs to write.
+
 ### 2026-09-19 (permanent retention, adopter-owned enforcement)
 
 - The 30-day GC is gone: archived notes are permanent. Every surveyed

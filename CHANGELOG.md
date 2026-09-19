@@ -2,17 +2,15 @@
 
 ## Unreleased
 
+- Trimmed the periphery back to the product: the pre-commit gate is one
+  simple script the adopting repo copies and edits as its own (the
+  blocking-policy options and the pre-tool-use injection client were
+  removed unused). Integrations are the adopter's own scripts around
+  the three verbs; `--help` and the agent skill remain the whole
+  onboarding.
 - Removed the 30-day GC: archived notes are permanent — resolved history
   is the audit trail and costs nothing to keep. `#handoff` expiry is
   unchanged (archiving, not deletion).
-- The pre-commit gate's blocking policy is now the adopting repo's
-  choice: `all` (default, every open note blocks) or `own` (only this
-  agent's and unauthored notes block — parallel swarms stop deadlocking
-  on co-workers' WIP notes); `STICKIT_GATE_POLICY` overrides per run.
-- Added `hooks/pre-tool-use`, a reference edit-time injection client for
-  agent runtimes (Claude Code snippet included), alongside the gate in
-  the reframed [docs/hooks.md](docs/hooks.md) — clients are copied and
-  owned by adopters, never product surface.
 - `add` targets accept filenames containing colons: when the whole spec
   names an existing file, a non-numeric `:suffix` is part of the name.
   Line counting against the real file also unified, so empty and

@@ -2,66 +2,42 @@
 """pre-commit gate: refuse commits while the board has unprocessed notes.
 
 A client of the stickit CLI, not part of it — the contract stays
-add / ls / resolve. This script is copied into the adopting repo; the
-blocking policy is the adopter's choice, set once per copy:
-
-  POLICY = "all"  — every open note blocks (default; right for one agent
-                    or one human working a repo at a time)
-  POLICY = "own"  — notes authored by this agent (or unauthored) block;
-                    other agents' open notes are listed for information
-                    only (right for parallel swarms sharing one board,
-                    where co-workers legitimately carry open WIP notes)
-
-The env var STICKIT_GATE_POLICY overrides the copy's default, so a
-policy can be tried without editing the script. Fails open when the
-binary is absent or the store is broken: the gate enforces discipline,
-it must not wedge work.
+add / ls / resolve. Any note the default `stickit ls` returns (active or
+stale; only resolve archives a note) counts as unprocessed. Fails open
+when the binary is absent or the store is broken: the gate enforces
+discipline, it must not wedge work. This copy is yours to edit — scope
+it, reword it, or replace it to fit how your project works.
 """
 import json
-import os
 import shutil
 import subprocess
 import sys
 
-POLICY = "all"  # "all" or "own"
-
 BODY_LIMIT = 90
 
 
-def open_notes():
-    """(notes I am expected to act on, notes owned by someone else)."""
+def main():
     stickit = shutil.which("stickit")
     if not stickit:
-        return None, None
+        return 0
     result = subprocess.run([stickit, "ls"], capture_output=True, text=True)
     if result.returncode != 0:
         sys.stderr.write(
             "stickit pre-commit: ls failed (%s); skipping the check\n"
             % result.stderr.strip()
         )
-        return None, None
+        return 0
     try:
         notes = json.loads(result.stdout)
     except json.JSONDecodeError:
-        return None, None
-    policy = os.environ.get("STICKIT_GATE_POLICY", POLICY)
-    if policy != "own":
-        return notes, []
-    me = os.environ.get("NOTES_AGENT", "")
-    mine, theirs = [], []
-    for n in notes:
-        author = n.get("author") or ""
-        if author == "" or author == "unknown" or author == me:
-            mine.append(n)
-        else:
-            theirs.append(n)
-    return mine, theirs
-
-
-def show(notes, heading):
+        return 0
     if not notes:
-        return
-    print(heading % len(notes))
+        return 0
+
+    print(
+        "stickit: %d note(s) still open on this board — handle them before"
+        " committing:" % len(notes)
+    )
     for n in notes:
         where = n["file"]
         if n.get("start_line"):
@@ -73,16 +49,6 @@ def show(notes, heading):
         print("      %s" % body)
     print("For each note: address it, then: stickit resolve <id>")
     print("A note that no longer applies: resolve it as-is; ls --all keeps the record.")
-
-
-def main():
-    mine, theirs = open_notes()
-    if mine is None:
-        return 0
-    show(theirs, "note: %d open note(s) belong to other agents (informational):")
-    if not mine:
-        return 0
-    show(mine, "stickit: %d note(s) still open on this board — handle them before committing:")
     return 1
 
 
