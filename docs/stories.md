@@ -85,3 +85,23 @@ Written down when a real collaboration runs into them, not before:
 - handoff across sessions — where a half-finished task left off
 - accumulating rationale — why this code looks this way, for whoever asks
   next
+
+The first multi-agent rehearsal (three unguided sessions sharing one
+board) surfaced two more, with evidence attached:
+
+- **the board lives in the workspace.** The global store showed its
+  rough edges first-hand: keys are unreadable path hashes, and a renamed
+  or deleted project orphans its board invisibly — forever, now that
+  nothing is deleted. Shape: one database per workspace — in the git dir
+  for repositories (worktrees share it via the common dir), a hidden
+  folder otherwise — so a board is born, moves and dies with its
+  project, and the global database, hashed keys and orphaned boards
+  cease to be concepts at all.
+- **a note is a thread; closing it has a reason.** Both author agents
+  spontaneously reached for threaded replies on the shipped version:
+  recording why a note stopped applying, and that a drifted note was
+  re-checked and still holds. Discussion on a note is a demonstrated
+  need, not speculation. Shape: replies as the discussion surface on a
+  note; `resolve` gaining an optional reason kept with the note's
+  record, retrievable via `ls --all`. Typed closure beyond that waits
+  for a third real disposition to appear.
