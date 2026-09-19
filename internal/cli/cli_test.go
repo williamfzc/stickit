@@ -18,17 +18,17 @@ func TestParseFlags(t *testing.T) {
 	}{
 		{
 			name:    "value flag anywhere",
-			args:    []string{"file.go:3", "--reply-to", "ab12", "body"},
-			allowed: map[string]bool{"reply-to": true},
+			args:    []string{"file.go:3", "--ref", "ab12", "body"},
+			allowed: map[string]bool{"ref": true},
 			pos:     []string{"file.go:3", "body"},
-			flags:   map[string]string{"reply-to": "ab12"},
+			flags:   map[string]string{"ref": "ab12"},
 		},
 		{
 			name:    "equals form",
-			args:    []string{"--reply-to=xyz", "body"},
-			allowed: map[string]bool{"reply-to": true},
+			args:    []string{"--ref=xyz", "body"},
+			allowed: map[string]bool{"ref": true},
 			pos:     []string{"body"},
-			flags:   map[string]string{"reply-to": "xyz"},
+			flags:   map[string]string{"ref": "xyz"},
 		},
 		{
 			name:      "unknown flag rejected",
@@ -38,15 +38,15 @@ func TestParseFlags(t *testing.T) {
 		},
 		{
 			name:      "value flag must not swallow another flag",
-			args:      []string{"--reply-to", "--all", "body"},
-			allowed:   map[string]bool{"reply-to": true},
-			wantError: "flag --reply-to needs a value",
+			args:      []string{"--ref", "--all", "body"},
+			allowed:   map[string]bool{"ref": true},
+			wantError: "flag --ref needs a value",
 		},
 		{
 			name:      "missing value",
-			args:      []string{"--reply-to"},
-			allowed:   map[string]bool{"reply-to": true},
-			wantError: "flag --reply-to needs a value",
+			args:      []string{"--ref"},
+			allowed:   map[string]bool{"ref": true},
+			wantError: "flag --ref needs a value",
 		},
 		{
 			name:      "bool flag takes no value",

@@ -23,7 +23,7 @@ const (
 const usage = `stickit — sticky notes pinned to files
 
 Usage:
-  stickit add <file[:line[-line]]> "body"   [--reply-to <id>]
+  stickit add <file[:line[-line]]> "body"
   stickit ls  [path] ["keyword"]            [--all]
   stickit resolve <id>
 
@@ -83,35 +83,15 @@ func failUsage(stderr io.Writer, err error) int {
 	return ExitUsage
 }
 
-// cmdAdd implements `add <file[:line[-line]]> "body"`, and with --reply-to
-// the threaded variant that appends to an existing note.
+// cmdAdd implements `add <file[:line[-line]]> "body"`.
 func cmdAdd(argv []string, o *out, stderr io.Writer) int {
-	pos, flags, err := parseFlags(argv, map[string]bool{"reply-to": true})
+	pos, _, err := parseFlags(argv, map[string]bool{})
 	if err != nil {
 		return fail(stderr, o, ExitUsage, err)
 	}
 	b, err := detectBoard()
 	if err != nil {
 		return fail(stderr, o, ExitStore, err)
-	}
-	if replyTo := flags["reply-to"]; replyTo != "" {
-		if len(pos) != 1 {
-			return fail(stderr, o, ExitUsage, fmt.Errorf("usage: stickit add --reply-to <id> %q", "body"))
-		}
-		if strings.TrimSpace(pos[0]) == "" {
-			return fail(stderr, o, ExitUsage, fmt.Errorf("reply body must not be empty"))
-		}
-		return withStore(stderr, o, func(s *store.Store) int {
-			r, err := s.AddReply(b.Key, replyTo, pos[0], boardAuthor(b))
-			if errors.Is(err, store.ErrNotFound) {
-				return fail(stderr, o, ExitNotFound, fmt.Errorf("no note %s in this board", replyTo))
-			}
-			if err != nil {
-				return fail(stderr, o, ExitStore, err)
-			}
-			o.reply(replyTo, r)
-			return ExitOK
-		})
 	}
 	if len(pos) != 2 {
 		return fail(stderr, o, ExitUsage, fmt.Errorf("usage: stickit add <file[:line[-line]]> %q", "body"))

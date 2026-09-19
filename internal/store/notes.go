@@ -36,19 +36,10 @@ type Note struct {
 	Body      string   `json:"body"`
 	CreatedAt string   `json:"created_at"`
 	UpdatedAt string   `json:"updated_at"`
-	Replies   []Reply  `json:"replies"`
 
 	// write-time anchor hashes, carried for lazy validation; not served.
 	anchorHash string
 	anchorNorm string
-}
-
-// Reply is a threaded response to a note.
-type Reply struct {
-	Seq       int    `json:"seq"`
-	Author    string `json:"author"`
-	Body      string `json:"body"`
-	CreatedAt string `json:"created_at"`
 }
 
 // NewNote carries everything add needs to record one note. The hashes cover
@@ -130,43 +121,6 @@ func (s *Store) AddNote(n NewNote) (Note, error) {
 		return Note{}, err
 	}
 	return s.getNote(n.RepoKey, id)
-}
-
-// AddReply appends one threaded reply to a note. The note id is scoped to
-// the board: a foreign id does not exist here.
-func (s *Store) AddReply(repoKey, noteID, body, author string) (Reply, error) {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return Reply{}, err
-	}
-	defer tx.Rollback()
-	if err := maintain(tx, repoKey); err != nil {
-		return Reply{}, err
-	}
-	var noteRepo string
-	err = tx.QueryRow(`SELECT repo FROM notes WHERE id = ?`, noteID).Scan(&noteRepo)
-	if errors.Is(err, sql.ErrNoRows) || (err == nil && noteRepo != repoKey) {
-		return Reply{}, ErrNotFound
-	}
-	if err != nil {
-		return Reply{}, err
-	}
-	var seq int
-	if err := tx.QueryRow(`SELECT COALESCE(MAX(seq), 0) + 1 FROM threads WHERE note_id = ?`, noteID).Scan(&seq); err != nil {
-		return Reply{}, err
-	}
-	ts := now()
-	if _, err := tx.Exec(`INSERT INTO threads (note_id, seq, author, body, created_at) VALUES (?,?,?,?,?)`,
-		noteID, seq, author, body, ts); err != nil {
-		return Reply{}, err
-	}
-	if _, err := tx.Exec(`INSERT INTO fts (body, kind, ref_id) VALUES (?, 'thread', ?)`, body, noteID); err != nil {
-		return Reply{}, err
-	}
-	if err := tx.Commit(); err != nil {
-		return Reply{}, err
-	}
-	return Reply{Seq: seq, Author: author, Body: body, CreatedAt: ts}, nil
 }
 
 // Resolve archives a note. Idempotent: resolving an already-archived note
@@ -259,12 +213,10 @@ func lineKey(n Note) int {
 	return *n.StartLine
 }
 
-// searchIDs resolves the keyword to matching note ids in FTS rank order
-// (note and reply bodies both count; a reply hit surfaces its note). A
-// multi-token keyword is an AND at note level: every token must appear
-// somewhere among the note's own body or its replies, not necessarily in
-// one single row. No keyword → (nil, nil); a keyword with no hits → an
-// empty set, never the whole board.
+// searchIDs resolves the keyword to matching note ids in FTS rank order.
+// A multi-token keyword is an AND at note level: every token must appear
+// in the note's body. No keyword → (nil, nil); a keyword with no hits →
+// an empty set, never the whole board.
 func (s *Store) searchIDs(f Filter) ([]string, map[string]int, error) {
 	toks := strings.Fields(f.Keyword)
 	if len(toks) == 0 {
@@ -583,29 +535,7 @@ func (s *Store) getNote(repoKey, id string) (Note, error) {
 		s := commit.String
 		n.Commit = &s
 	}
-	replies, err := s.replies(id)
-	if err != nil {
-		return Note{}, err
-	}
-	n.Replies = replies
 	return n, nil
-}
-
-func (s *Store) replies(noteID string) ([]Reply, error) {
-	rows, err := s.DB.Query(`SELECT seq, author, body, created_at FROM threads WHERE note_id = ? ORDER BY seq`, noteID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	replies := []Reply{}
-	for rows.Next() {
-		var r Reply
-		if err := rows.Scan(&r.Seq, &r.Author, &r.Body, &r.CreatedAt); err != nil {
-			return nil, err
-		}
-		replies = append(replies, r)
-	}
-	return replies, rows.Err()
 }
 
 // maintain is the lazy half of "maintenance is behavior": every write path
@@ -661,7 +591,6 @@ func maintain(tx *sql.Tx, repoKey string) error {
 	gone.Close()
 	for _, id := range dead {
 		for _, q := range []string{
-			`DELETE FROM threads WHERE note_id = ?`,
 			`DELETE FROM fts WHERE ref_id = ?`,
 			`DELETE FROM notes WHERE id = ?`,
 		} {

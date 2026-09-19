@@ -83,9 +83,6 @@ func TestAddListRoundtrip(t *testing.T) {
 	if n.StartLine == nil || *n.StartLine != 2 || n.EndLine == nil || *n.EndLine != 2 {
 		t.Fatalf("anchor not stored: %+v", n)
 	}
-	if len(n.Replies) != 0 {
-		t.Fatalf("new note must have no replies: %+v", n.Replies)
-	}
 	notes := list(t, s, f, Filter{RepoKey: "k1"})
 	if len(notes) != 1 || notes[0].ID != n.ID {
 		t.Fatalf("ls = %+v", notes)
@@ -110,21 +107,17 @@ func TestFileLevelNote(t *testing.T) {
 	}
 }
 
-func TestKeywordSearchCoversReplies(t *testing.T) {
+func TestKeywordSearch(t *testing.T) {
 	s := openStore(t)
 	f := files{"a.go": "x\n", "b.go": "y\n"}
-	addNote(t, s, f, "a.go", 1, 1, "parser assumes utf8")
+	addNote(t, s, f, "a.go", 1, 1, "parser assumes utf8; the legacy feed is gbk")
 	addNote(t, s, f, "b.go", 1, 1, "unrelated")
-	id := list(t, s, f, Filter{RepoKey: "k1"})[0].ID
-	if _, err := s.AddReply("k1", id, "the legacy feed is gbk", "b"); err != nil {
-		t.Fatal(err)
-	}
-	// a reply hit surfaces the parent note, with the reply attached
+
 	got := list(t, s, f, Filter{RepoKey: "k1", Keyword: "gbk"})
-	if len(got) != 1 || got[0].File != "a.go" || len(got[0].Replies) != 1 {
-		t.Fatalf("keyword over replies = %+v", got)
+	if len(got) != 1 || got[0].File != "a.go" {
+		t.Fatalf("keyword = %+v", got)
 	}
-	// multi-token keyword is an AND
+	// multi-token keyword is an AND over the note's body
 	if got := list(t, s, f, Filter{RepoKey: "k1", Keyword: "utf8 gbk"}); len(got) != 1 {
 		t.Fatalf("AND search = %+v", got)
 	}

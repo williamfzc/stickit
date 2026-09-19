@@ -15,7 +15,7 @@ func TestAddServesFullNoteObject(t *testing.T) {
 	stdout := mustRun(t, repo, env, "add", "file.go:2", "mind the gap #gotcha")
 
 	want := []string{"id", "file", "start_line", "end_line", "status", "drifted",
-		"tags", "author", "branch", "commit", "body", "created_at", "updated_at", "replies"}
+		"tags", "author", "branch", "commit", "body", "created_at", "updated_at"}
 	var keys map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(stdout), &keys); err != nil {
 		t.Fatalf("decode add output %q: %v", stdout, err)
@@ -54,9 +54,6 @@ func TestAddServesFullNoteObject(t *testing.T) {
 	}
 	if n.CreatedAt == "" || n.CreatedAt != n.UpdatedAt {
 		t.Fatalf("add: created_at %q / updated_at %q must match and be set", n.CreatedAt, n.UpdatedAt)
-	}
-	if len(n.Replies) != 0 {
-		t.Fatalf("add: new note must have no replies: %v", n.Replies)
 	}
 }
 
@@ -105,50 +102,6 @@ func TestAddParsesTags(t *testing.T) {
 		if n.Tags[i] != want[i] {
 			t.Fatalf("tags = %v, want %v", n.Tags, want)
 		}
-	}
-}
-
-// Replies thread onto a note with incrementing seq numbers, and ls serves
-// the note with its replies attached.
-func TestReplyThreadsIncrementSeq(t *testing.T) {
-	env := newEnv(t)
-	dir := t.TempDir()
-	writeLines(t, filepath.Join(dir, "file.go"), "one", "two")
-	n := mustAdd(t, dir, env, "file.go:1", "root note")
-
-	first := mustRun(t, dir, env, "add", "--reply-to", n.ID, "first reply")
-	var keys map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(first), &keys); err != nil {
-		t.Fatalf("decode reply output %q: %v", first, err)
-	}
-	wantKeys := []string{"note_id", "seq", "author", "body", "created_at"}
-	if len(keys) != len(wantKeys) {
-		t.Fatalf("reply output keys = %v, want exactly %v", keysOf(keys), wantKeys)
-	}
-
-	var r1 replyOutput
-	if err := json.Unmarshal([]byte(first), &r1); err != nil {
-		t.Fatalf("decode reply output %q: %v", first, err)
-	}
-	if r1.NoteID != n.ID || r1.Seq != 1 || r1.Author != agentName || r1.Body != "first reply" || r1.CreatedAt == "" {
-		t.Fatalf("first reply = %+v", r1)
-	}
-
-	var r2 replyOutput
-	if err := json.Unmarshal([]byte(mustRun(t, dir, env, "add", "--reply-to", n.ID, "second reply")), &r2); err != nil {
-		t.Fatal(err)
-	}
-	if r2.NoteID != n.ID || r2.Seq != 2 {
-		t.Fatalf("second reply = %+v, want seq 2 on note %s", r2, n.ID)
-	}
-
-	got := singleNote(t, mustList(t, dir, env, "file.go"), "ls after replies")
-	if len(got.Replies) != 2 {
-		t.Fatalf("note carries %d replies, want 2: %+v", len(got.Replies), got.Replies)
-	}
-	if got.Replies[0].Seq != 1 || got.Replies[0].Body != "first reply" ||
-		got.Replies[1].Seq != 2 || got.Replies[1].Body != "second reply" {
-		t.Fatalf("replies out of order: %+v", got.Replies)
 	}
 }
 

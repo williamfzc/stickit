@@ -98,9 +98,7 @@ func TestUsageErrorsAreJSON(t *testing.T) {
 		{"add without arguments", []string{"add"}, "usage: stickit add"},
 		{"add with only a target", []string{"add", "file.go"}, "usage: stickit add"},
 		{"add with blank body", []string{"add", "file.go:2", "  "}, "body must not be empty"},
-		{"reply-to without value", []string{"add", "--reply-to"}, "needs a value"},
-		{"reply-to without body", []string{"add", "--reply-to", "abcdefgh"}, "usage: stickit add"},
-		{"reply-to with blank body", []string{"add", "--reply-to", "abcdefgh", "  "}, "body must not be empty"},
+		{"add with unknown flag", []string{"add", "--reply-to", "abcdefgh"}, "unknown flag"},
 		{"ls with unknown flag", []string{"ls", "--frobnicate"}, "unknown flag"},
 		{"ls with three positionals", []string{"ls", "file.go", "one", "two"}, "usage: stickit ls"},
 		{"ls with keyword then positional", []string{"ls", "nosuchword", "more"}, "does not name a path"},
@@ -160,7 +158,7 @@ func TestBadTargetsAreUsageErrors(t *testing.T) {
 	}
 }
 
-// An unknown note id in this board is exit 2 — for resolve and for replies.
+// An unknown note id in this board is exit 2.
 func TestNoteNotFoundIsExitTwo(t *testing.T) {
 	env := newEnv(t)
 	dir := t.TempDir()
@@ -175,17 +173,6 @@ func TestNoteNotFoundIsExitTwo(t *testing.T) {
 	}
 	if msg := decodeError(t, stderr); !strings.Contains(msg, "no note nowhere00") {
 		t.Fatalf("resolve nowhere00: error = %q", msg)
-	}
-
-	stdout, stderr, code = run(t, dir, env, "add", "--reply-to", "nowhere00", "a reply")
-	if code != 2 {
-		t.Fatalf("add --reply-to nowhere00: exit %d, want 2", code)
-	}
-	if stdout != "" {
-		t.Fatalf("add --reply-to nowhere00: stdout = %q, want empty", stdout)
-	}
-	if msg := decodeError(t, stderr); !strings.Contains(msg, "no note nowhere00") {
-		t.Fatalf("add --reply-to nowhere00: error = %q", msg)
 	}
 }
 

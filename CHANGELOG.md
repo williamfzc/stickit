@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Removed `--reply-to` and note threads: no collaboration shape needed
+  them — a wrong note is resolved as-is (archived notes stay reachable
+  via `ls --all`) and a corrected fact is a fresh note. Notes no longer
+  carry a `replies` key; keyword search covers note bodies only.
 - Removed the undocumented `skill` verb alias (shipped in 0.1.0):
   `stickit --skill` is the only spelling of the agent contract snippet.
 

@@ -21,7 +21,8 @@ The refusal lists every open note with id, location, status, author and
 body, and the two ways to handle one:
 
 - address it, then `stickit resolve <id>`
-- disagree in its thread (`stickit add --reply-to <id> "..."`), then resolve
+- a note that no longer applies: resolve it as-is — archived notes stay
+  reachable via `ls --all`, and a corrected fact is a fresh note
 
 ## Install (per repo)
 

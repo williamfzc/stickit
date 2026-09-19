@@ -34,17 +34,6 @@ func (o *out) note(n store.Note) {
 	_ = jsonEncoder(o.w).Encode(n)
 }
 
-func (o *out) reply(noteID string, r store.Reply) {
-	if o.pretty {
-		fmt.Fprintf(o.w, "reply %d added to %s\n", r.Seq, noteID)
-		return
-	}
-	_ = jsonEncoder(o.w).Encode(struct {
-		NoteID string `json:"note_id"`
-		store.Reply
-	}{noteID, r})
-}
-
 func (o *out) resolved(n store.Note) {
 	if o.pretty {
 		fmt.Fprintf(o.w, "resolved %s\n", n.ID)
@@ -71,9 +60,6 @@ func (o *out) table(notes []store.Note) {
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
 			n.ID, st, loc(n), provenance(n), oneLine(n.Body))
-		for _, r := range n.Replies {
-			fmt.Fprintf(tw, "  ↳ %d\t\t\t%s\t%s\n", r.Seq, r.Author, oneLine(r.Body))
-		}
 	}
 	tw.Flush()
 }

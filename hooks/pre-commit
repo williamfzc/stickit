@@ -47,8 +47,7 @@ def main():
         print("  %s  %-30s [%s] by %s" % (n["id"], where, n["status"], n.get("author", "")))
         print("      %s" % body)
     print("For each note: address it, then: stickit resolve <id>")
-    print("If a note is wrong, say so in its thread first:")
-    print("  stickit add --reply-to <id> \"why this does not apply\"")
+    print("A note that no longer applies: resolve it as-is; ls --all keeps the record.")
     return 1
 
 

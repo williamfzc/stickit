@@ -45,7 +45,7 @@ CLI is the protocol.  Agents only see commands; SQLite is an implementation deta
 ## Interface (the whole contract)
 
 ```
-stickit add <file[:line[-line]]> "body"        # --reply-to <id> for threads
+stickit add <file[:line[-line]]> "body"
 stickit ls  [path] ["keyword"]                 # --all to include archived
 stickit resolve <id>
 ```
@@ -56,7 +56,7 @@ Zero required flags. Everything else dissolves:
 |---|---|
 | note type (`gotcha`/`decision`/`handoff`) | `#hashtags` parsed from body; lifecycle rules attach to them |
 | author identity | `NOTES_AGENT` env var (agents), git user.name fallback (humans) |
-| full-text search | positional keyword arg → FTS5 (multi-token = AND over the note's body and replies) |
+| full-text search | positional keyword arg → FTS5 (multi-token = AND over the note's body) |
 | drift / staleness | lazy re-validation inside every read; no `doctor` verb |
 | expiry & GC | lazy, on write paths; `#handoff` notes archive when task completes |
 | backup | hidden `stickit dump` → JSONL (not part of the agent surface) |
@@ -89,15 +89,7 @@ CREATE TABLE notes (
   created_at  TEXT NOT NULL,
   updated_at  TEXT NOT NULL
 );
-CREATE TABLE threads (
-  note_id TEXT NOT NULL REFERENCES notes(id),
-  seq     INTEGER NOT NULL,
-  author  TEXT NOT NULL,
-  body    TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  PRIMARY KEY (note_id, seq)
-);
--- FTS5 virtual table over notes.body + threads.body
+-- FTS5 virtual table over notes.body
 -- (columns: body, kind UNINDEXED, ref_id UNINDEXED)
 ```
 

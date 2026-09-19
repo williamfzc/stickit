@@ -13,6 +13,19 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-19 (threads removed)
+
+- Removed `--reply-to` and the threads table. The audit question was not
+  "who would reply" — a reply targets a note, not a known person — but
+  whether any [story](stories.md) loop needs it: co-development never
+  replies, the review loop's cycle is pin → fix → resolve, and a wrong
+  note is resolved as-is with the corrected fact as a fresh note (under
+  the gate, an unresolved disagreement arguably *should* stay on the
+  board). Threads were the largest non-core surface chunk: threads
+  table, seq, `--reply-to`, a `replies` key in every note, and FTS over
+  replies (which forced the note-level AND). Existing databases keep
+  their tables; nothing reads them. One concept fewer; unsure meant no.
+
 ### 2026-09-19 (skill alias trimmed)
 
 - Removed the bare `skill` verb — the undocumented alias `--skill` carried

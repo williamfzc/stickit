@@ -74,8 +74,8 @@ func TestLsDirectoryFilter(t *testing.T) {
 	}
 }
 
-// searchFixture pins three notes: A's own body mentions kafka, only B's
-// reply mentions kafka, C mentions nothing relevant.
+// searchFixture pins three notes: A and B mention kafka, C mentions
+// nothing relevant.
 func searchFixture(t *testing.T) (dir string, env []string, a, b, c note) {
 	t.Helper()
 	env = newEnv(t)
@@ -84,15 +84,13 @@ func searchFixture(t *testing.T) (dir string, env []string, a, b, c note) {
 		writeLines(t, filepath.Join(dir, f), "x")
 	}
 	a = mustAdd(t, dir, env, "a.go:1", "connects to kafka before startup")
-	b = mustAdd(t, dir, env, "b.go:1", "completely unrelated words")
-	mustRun(t, dir, env, "add", "--reply-to", b.ID, "remember to bump the kafka partitions")
+	b = mustAdd(t, dir, env, "b.go:1", "kafka partitions must be bumped first")
 	c = mustAdd(t, dir, env, "c.go:1", "nothing relevant here")
 	return dir, env, a, b, c
 }
 
-// A single-token keyword searches note bodies and reply bodies alike; a
-// reply hit surfaces the parent note with replies attached.
-func TestLsKeywordCoversNotesAndReplies(t *testing.T) {
+// A keyword searches note bodies.
+func TestLsKeywordSearchesBodies(t *testing.T) {
 	dir, env, a, b, c := searchFixture(t)
 
 	got := byID(t, mustList(t, dir, env, "kafka"))
@@ -102,15 +100,11 @@ func TestLsKeywordCoversNotesAndReplies(t *testing.T) {
 	if _, ok := got[a.ID]; !ok {
 		t.Fatalf("ls kafka missed the note whose body mentions kafka: %v", got)
 	}
+	if _, ok := got[b.ID]; !ok {
+		t.Fatalf("ls kafka missed the second kafka note: %v", got)
+	}
 	if _, ok := got[c.ID]; ok {
 		t.Fatalf("ls kafka surfaced the unrelated note %s", c.ID)
-	}
-	hit, ok := got[b.ID]
-	if !ok {
-		t.Fatalf("ls kafka missed the note whose reply mentions kafka: %v", got)
-	}
-	if len(hit.Replies) != 1 || !strings.Contains(hit.Replies[0].Body, "kafka") {
-		t.Fatalf("reply hit must surface the parent note with replies attached: %+v", hit)
 	}
 }
 
@@ -132,23 +126,19 @@ func TestLsPathAndKeywordCombine(t *testing.T) {
 	}
 }
 
-// A multi-token keyword (one quoted argument) is an AND across the note's
-// own body and its replies — not necessarily in one row.
+// A multi-token keyword (one quoted argument) is an AND over the note's
+// body.
 func TestLsMultiTokenKeywordIsAND(t *testing.T) {
 	env := newEnv(t)
 	dir := t.TempDir()
 	writeLines(t, filepath.Join(dir, "d.go"), "x")
 	writeLines(t, filepath.Join(dir, "e.go"), "x")
-	d := mustAdd(t, dir, env, "d.go:1", "alpha marker in the body")
-	mustRun(t, dir, env, "add", "--reply-to", d.ID, "beta details live here")
-	mustAdd(t, dir, env, "e.go:1", "alpha only, no reply")
+	d := mustAdd(t, dir, env, "d.go:1", "alpha marker, and beta details, in one body")
+	mustAdd(t, dir, env, "e.go:1", "alpha marker only")
 
 	got := singleNote(t, mustList(t, dir, env, "alpha beta"), `ls "alpha beta"`)
 	if got.ID != d.ID {
-		t.Fatalf(`ls "alpha beta" = %s, want the note whose body has alpha and reply has beta`, got.ID)
-	}
-	if len(got.Replies) != 1 {
-		t.Fatalf("matched note must carry its reply: %+v", got)
+		t.Fatalf(`ls "alpha beta" = %s, want the note carrying both tokens`, got.ID)
 	}
 
 	// A token nobody carries: empty result, never the whole board.

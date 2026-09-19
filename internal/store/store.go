@@ -154,15 +154,6 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 CREATE INDEX IF NOT EXISTS idx_notes_repo ON notes(repo, file, status);
 
-CREATE TABLE IF NOT EXISTS threads (
-  note_id    TEXT NOT NULL REFERENCES notes(id),
-  seq        INTEGER NOT NULL,
-  author     TEXT NOT NULL,
-  body       TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  PRIMARY KEY (note_id, seq)
-);
-
--- Full-text index over note and reply bodies; ref_id is the owning note.
+-- Full-text index over note bodies; ref_id is the owning note.
 CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(body, kind UNINDEXED, ref_id UNINDEXED);
 `

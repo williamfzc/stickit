@@ -208,21 +208,6 @@ type note struct {
 	Body      string   `json:"body"`
 	CreatedAt string   `json:"created_at"`
 	UpdatedAt string   `json:"updated_at"`
-	Replies   []reply  `json:"replies"`
-}
-
-// reply mirrors one thread entry.
-type reply struct {
-	Seq       int    `json:"seq"`
-	Author    string `json:"author"`
-	Body      string `json:"body"`
-	CreatedAt string `json:"created_at"`
-}
-
-// replyOutput mirrors the JSON served by `add --reply-to`.
-type replyOutput struct {
-	NoteID string `json:"note_id"`
-	reply
 }
 
 func decodeNote(t *testing.T, stdout, what string) note {
