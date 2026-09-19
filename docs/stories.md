@@ -54,6 +54,29 @@ stickit add tests/e2e.go:77 "suite needs the DB up; run migrations first #gotcha
 stickit ls tests/e2e.go        # same board; origin reads `feature-a`
 ```
 
+## Adopting a repo
+
+An agent brings stickit into a repository it works in. The tool is
+self-teaching and the wiring is the adopter's:
+
+```
+curl -fsSL https://raw.githubusercontent.com/williamfzc/stickit/main/install.sh | sh   # once, machine-wide
+stickit --skill                                                                        # the contract, from the tool itself
+```
+
+- **work**: `ls <file>` before editing, `add <file:line> "..."` when
+  something non-obvious is learned, `resolve <id>` when done — pasting
+  those three lines into the repo's AGENTS.md starts every future
+  session knowing it
+- **close the loop mechanically**: copy `hooks/pre-commit`, point git
+  at it ([hooks](hooks.md)); the copied script is the repo's to edit
+- **anything else** (edit-time injection, session digests): the
+  adopter's own scripts around the three verbs
+
+The bar: an agent that installs the CLI and reads `--help` can do all
+of this unaided — usage, contract, and the shape of the wiring are
+visible from the tool and the docs it links.
+
 ## Candidates, not commitments
 
 Written down when a real collaboration runs into them, not before:
