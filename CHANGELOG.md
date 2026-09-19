@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The store moved into the workspace: git repositories keep their board
+  in `.git/stickit/` (shared by every worktree, untouchable by `git
+  clean`), plain directories in `.stickit/`. Renaming a project keeps
+  its notes; deleting it removes the board with them. The global
+  database, hashed board keys and orphaned boards are gone; `STICKIT_DB`
+  still overrides, and `dump` backs up the current board.
 - Trimmed the periphery back to the product: the pre-commit gate is one
   simple script the adopting repo copies and edits as its own (the
   blocking-policy options and the pre-tool-use injection client were

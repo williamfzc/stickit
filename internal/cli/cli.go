@@ -105,14 +105,13 @@ func cmdAdd(argv []string, o *out, stderr io.Writer) int {
 		return fail(stderr, o, ExitUsage, err)
 	}
 	note := store.NewNote{
-		RepoKey: b.Key,
-		File:    t.File,
-		Start:   t.Start,
-		End:     t.End,
-		Body:    body,
-		Author:  boardAuthor(b),
-		Branch:  b.Branch,
-		Commit:  b.Commit,
+		File:   t.File,
+		Start:  t.Start,
+		End:    t.End,
+		Body:   body,
+		Author: boardAuthor(b),
+		Branch: b.Branch,
+		Commit: b.Commit,
 	}
 	if t.Start > 0 {
 		lines, err := readLines(t.AbsPath)
@@ -126,7 +125,7 @@ func cmdAdd(argv []string, o *out, stderr io.Writer) int {
 		note.Hash = anchorHash(blk)
 		note.NormHash = anchorNormHash(blk)
 	}
-	return withStore(stderr, o, func(s *store.Store) int {
+	return withStore(b, stderr, o, func(s *store.Store) int {
 		n, err := s.AddNote(note)
 		if err != nil {
 			return fail(stderr, o, ExitStore, err)
@@ -150,7 +149,6 @@ func cmdLs(argv []string, o *out, stderr io.Writer) int {
 		return fail(stderr, o, ExitStore, err)
 	}
 	f := store.Filter{
-		RepoKey:         b.Key,
 		IncludeArchived: flags["all"] != "",
 	}
 	if len(pos) >= 1 && isPathArg(pos[0]) {
@@ -168,7 +166,7 @@ func cmdLs(argv []string, o *out, stderr io.Writer) int {
 	} else if len(pos) == 2 {
 		return fail(stderr, o, ExitUsage, fmt.Errorf("first argument %q does not name a path; pass the keyword alone", pos[0]))
 	}
-	return withStore(stderr, o, func(s *store.Store) int {
+	return withStore(b, stderr, o, func(s *store.Store) int {
 		notes, err := s.List(f, boardContent(b))
 		if err != nil {
 			return fail(stderr, o, ExitStore, err)
@@ -191,8 +189,8 @@ func cmdResolve(argv []string, o *out, stderr io.Writer) int {
 	if err != nil {
 		return fail(stderr, o, ExitStore, err)
 	}
-	return withStore(stderr, o, func(s *store.Store) int {
-		n, err := s.Resolve(b.Key, pos[0])
+	return withStore(b, stderr, o, func(s *store.Store) int {
+		n, err := s.Resolve(pos[0])
 		if errors.Is(err, store.ErrNotFound) {
 			return fail(stderr, o, ExitNotFound, fmt.Errorf("no note %s in this board", pos[0]))
 		}
@@ -205,7 +203,11 @@ func cmdResolve(argv []string, o *out, stderr io.Writer) int {
 }
 
 func cmdDump(o *out, stderr io.Writer) int {
-	return withStore(stderr, o, func(s *store.Store) int {
+	b, err := detectBoard()
+	if err != nil {
+		return fail(stderr, o, ExitStore, err)
+	}
+	return withStore(b, stderr, o, func(s *store.Store) int {
 		if err := s.DumpJSONL(o.w); err != nil {
 			return fail(stderr, o, ExitStore, err)
 		}

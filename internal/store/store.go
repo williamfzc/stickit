@@ -14,25 +14,10 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// Store wraps the global database. All operations scope by the board key.
+// Store wraps one board's database: the file is the board. It lives with
+// the workspace and every note in it belongs to that board.
 type Store struct {
 	DB *sql.DB
-}
-
-// DefaultPath returns the database location: $STICKIT_DB if set, else
-// stickit/stickit.db under the XDG data home.
-func DefaultPath() (string, error) {
-	if p := os.Getenv("STICKIT_DB"); p != "" {
-		return p, nil
-	}
-	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
-		return filepath.Join(dir, "stickit", "stickit.db"), nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".local", "share", "stickit", "stickit.db"), nil
 }
 
 // Open opens the global database, creating parent directories and schema as
@@ -136,7 +121,6 @@ func addColumn(db *sql.DB, table, column, decl string) error {
 const schema = `
 CREATE TABLE IF NOT EXISTS notes (
   id           TEXT PRIMARY KEY,
-  repo         TEXT NOT NULL,        -- hash of the board root path
   file         TEXT NOT NULL,        -- board-relative, slash-separated
   start_line   INTEGER,              -- NULL for file-level notes
   end_line     INTEGER,
@@ -152,7 +136,7 @@ CREATE TABLE IF NOT EXISTS notes (
   created_at   TEXT NOT NULL,
   updated_at   TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_notes_repo ON notes(repo, file, status);
+CREATE INDEX IF NOT EXISTS idx_notes_file ON notes(file, status);
 
 -- Full-text index over note bodies; ref_id is the owning note.
 CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(body, kind UNINDEXED, ref_id UNINDEXED);

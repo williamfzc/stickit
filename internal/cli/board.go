@@ -81,12 +81,13 @@ func boardContent(b board.Board) store.Content {
 
 func absUserPath(p string) (string, error) { return board.AbsUserPath(p) }
 
-// withStore opens the global database for one operation and always closes
-// it, mapping open failures to the store exit code.
-func withStore(stderr io.Writer, o *out, fn func(*store.Store) int) int {
-	path, err := store.DefaultPath()
-	if err != nil {
-		return fail(stderr, o, ExitStore, err)
+// withStore opens the board's database for one operation and always closes
+// it, mapping open failures to the store exit code. STICKIT_DB overrides
+// the board's own location (tests, explicit backups, merging boards).
+func withStore(b board.Board, stderr io.Writer, o *out, fn func(*store.Store) int) int {
+	path := b.DBPath
+	if p := os.Getenv("STICKIT_DB"); p != "" {
+		path = p
 	}
 	s, err := store.Open(path)
 	if err != nil {

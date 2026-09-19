@@ -206,39 +206,35 @@ func TestWhitespaceKeywordOnEmptyBoard(t *testing.T) {
 	}
 }
 
-// dump is the backup surface: one JSON object per line, every board in the
-// database, each carrying the repo key and the note id.
+// dump is the backup surface: one JSON object per line, every note on this
+// board, each carrying its id.
 func TestDumpIsJSONL(t *testing.T) {
-	env := baseEnv(filepath.Join(t.TempDir(), "stickit.db"))
-	repoA := newGitRepo(t, env)
-	repoB := newGitRepo(t, env)
-	writeLines(t, filepath.Join(repoA, "a.txt"), "one", "two")
-	writeLines(t, filepath.Join(repoB, "b.txt"), "one", "two")
-	mustAdd(t, repoA, env, "a.txt:1", "note pinned in repo A")
-	mustAdd(t, repoB, env, "b.txt:1", "note pinned in repo B")
+	env := newEnv(t)
+	dir := newPlainDir(t)
+	writeLines(t, filepath.Join(dir, "a.txt"), "one", "two")
+	writeLines(t, filepath.Join(dir, "b.txt"), "one", "two")
+	a := mustAdd(t, dir, env, "a.txt:1", "note one")
+	b := mustAdd(t, dir, env, "b.txt:1", "note two")
 
-	stdout := mustRun(t, repoA, env, "dump")
+	stdout := mustRun(t, dir, env, "dump")
 	lines := strings.Split(strings.TrimSuffix(stdout, "\n"), "\n")
 	if len(lines) != 2 {
 		t.Fatalf("dump produced %d lines, want 2: %q", len(lines), stdout)
 	}
-	repos := map[string]bool{}
+	ids := map[string]bool{}
 	for i, ln := range lines {
 		var obj map[string]any
 		if err := json.Unmarshal([]byte(ln), &obj); err != nil {
 			t.Fatalf("dump line %d is not one JSON object: %q", i+1, ln)
 		}
-		if id, _ := obj["id"].(string); id == "" {
+		id, _ := obj["id"].(string)
+		if id == "" {
 			t.Fatalf("dump line %d has no id: %q", i+1, ln)
 		}
-		repo, _ := obj["repo"].(string)
-		if repo == "" {
-			t.Fatalf("dump line %d has no repo key: %q", i+1, ln)
-		}
-		repos[repo] = true
+		ids[id] = true
 	}
-	if len(repos) != 2 {
-		t.Fatalf("dump must carry both boards' keys, got %v", repos)
+	if !ids[a.ID] || !ids[b.ID] {
+		t.Fatalf("dump must carry both notes, got %v", ids)
 	}
 }
 

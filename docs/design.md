@@ -23,14 +23,16 @@ CLI is the protocol.  Agents only see commands; SQLite is an implementation deta
 ```
 
 - One binary, installed globally on the user's machine.
-- One global SQLite database (WAL mode), keyed by the repo's **common
-  directory** (`git rev-parse --git-common-dir`), never by the worktree path
-  (`--show-toplevel` differs per worktree and would fragment one repo into
-  one board per worktree). Consequences, both intended:
-  - worktrees of the same repo share one board (swarm-friendly),
-  - repos are isolated from each other by default; cross-repo search is
-    deliberately out of scope for v1 (it was once sketched as `--all`,
-    which the interface contract now spends on "include archived" instead).
+- One SQLite database per **workspace**, stored inside the workspace
+  itself: in the git dir (`<git-common-dir>/stickit/board.db`) for
+  repositories — keyed by the common directory, never the worktree path,
+  so all worktrees share one board — and in a `.stickit/` directory
+  otherwise. The board is born, moves and dies with its project:
+  renaming it keeps every note, deleting it removes the board, and
+  nothing is orphaned on the machine. `STICKIT_DB` overrides the
+  location (tests, explicit backups). Cross-repo search remains out of
+  scope for v1 (it was once sketched as `--all`,
+  which the interface contract now spends on "include archived" instead).
 - Every write records the current branch and HEAD commit automatically — no
   flag — and reads show that origin, so a note pinned on `feature-x` never
   reads as a statement about `main`, and one pinned at commit `abc1234`
@@ -125,10 +127,9 @@ is the audit trail, and it costs nothing to keep.
 ## Risks & mitigations
 
 - **Data loss** (all notes live in one dotfile): `stickit dump`; document backup.
-- **Cross-repo leakage on shared machines**: strict repo scoping by default.
-- **Machine-local boards**: the store lives on one machine; agents on
-  different machines (SSH remotes, CI containers) see different boards.
-  `dump`/`rebuild` is the seam for moving a board when that matters.
+- **Boards don't travel**: the database lives in the workspace, so fresh
+  clones and other machines (SSH remotes, CI containers) start from an
+  empty board; `dump` is the seam for moving a board when that matters.
 - **Adoption**: ship a copy-paste skill/AGENTS.md snippet (`stickit --skill`,
   routed to from `--help`); agents must degrade gracefully when the binary is
   absent (CI/containers).

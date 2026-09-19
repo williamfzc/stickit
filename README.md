@@ -31,8 +31,9 @@ Three verbs, zero required flags. Interface area = lines of skill text.
 
 - **CLI is the protocol.** Agents only ever see commands; the database is an
   implementation detail. Machine-first output (JSON when piped, pretty on TTY).
-- **Global store, repo-scoped.** One SQLite database per machine, keyed by repo root —
-  notes are shared across git worktrees, isolated across repos.
+- **Workspace-local store.** One SQLite database per workspace, inside the
+  git dir — notes are shared across git worktrees, the board moves and dies
+  with the project, and repos are isolated by construction.
 - **Line anchors that survive edits.** Anchors carry a content hash; reads lazily
   re-validate and fuzzy-re-anchor, so notes drift gracefully instead of lying.
 - **Maintenance is behavior, not commands.** Stale detection, expiry and GC are

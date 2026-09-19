@@ -129,6 +129,30 @@ func newEnv(t *testing.T) []string {
 	return baseEnv(filepath.Join(t.TempDir(), "stickit.db"))
 }
 
+// defaultEnv returns a hermetic environment with no STICKIT_DB: the board's
+// database lands in the workspace itself, where the product puts it.
+func defaultEnv(t *testing.T) []string {
+	t.Helper()
+	var env []string
+	for _, kv := range os.Environ() {
+		switch {
+		case strings.HasPrefix(kv, "STICKIT_DB="),
+			strings.HasPrefix(kv, "NOTES_AGENT="),
+			strings.HasPrefix(kv, "GIT_CONFIG_GLOBAL="),
+			strings.HasPrefix(kv, "GIT_CONFIG_SYSTEM="),
+			strings.HasPrefix(kv, "GIT_CONFIG_NOSYSTEM="):
+		default:
+			env = append(env, kv)
+		}
+	}
+	return append(env,
+		"NOTES_AGENT="+agentName,
+		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_SYSTEM=/dev/null",
+		"GIT_CONFIG_NOSYSTEM=1",
+	)
+}
+
 // withoutNotesAgent removes the agent identity so the author falls back to
 // the git user name (and to "unknown" outside git).
 func withoutNotesAgent(env []string) []string {

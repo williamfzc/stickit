@@ -87,16 +87,8 @@ Written down when a real collaboration runs into them, not before:
   next
 
 The first multi-agent rehearsal (three unguided sessions sharing one
-board) surfaced two more, with evidence attached:
+board) surfaced a further candidate, with evidence attached:
 
-- **the board lives in the workspace.** The global store showed its
-  rough edges first-hand: keys are unreadable path hashes, and a renamed
-  or deleted project orphans its board invisibly — forever, now that
-  nothing is deleted. Shape: one database per workspace — in the git dir
-  for repositories (worktrees share it via the common dir), a hidden
-  folder otherwise — so a board is born, moves and dies with its
-  project, and the global database, hashed keys and orphaned boards
-  cease to be concepts at all.
 - **a note is a thread; closing it has a reason.** Both author agents
   spontaneously reached for threaded replies on the shipped version:
   recording why a note stopped applying, and that a drifted note was

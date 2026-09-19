@@ -2,14 +2,12 @@
 // repository root (or plain directory) that owns the notes, plus the
 // provenance — branch and author — recorded on writes.
 //
-// The board is keyed by the repository's common directory, so all worktrees
-// of one repo share a single board; outside git, the directory itself is the
-// board.
+// The board's database lives with the workspace — inside the git dir (so
+// all worktrees of one repo share a single board and it moves and dies
+// with the project); outside git, in a .stickit directory of the folder.
 package board
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,15 +17,13 @@ import (
 
 // Board is the resolved scope of the current invocation.
 type Board struct {
-	// Root is the absolute path notes are scoped by: the repository root
+	// Root is the workspace the board belongs to: the repository root
 	// (via git-common-dir, so all worktrees share one board), or the
 	// directory itself outside git.
 	Root string
 	// TopLevel is the working tree the current invocation reads files from:
 	// the worktree root inside git, Root otherwise.
 	TopLevel string
-	// Key identifies the board in the global store.
-	Key string
 	// InGit reports whether the board is a git repository.
 	InGit bool
 	// Branch is the checked-out branch ("" outside git, "HEAD" when
@@ -36,6 +32,11 @@ type Board struct {
 	// Commit is the HEAD revision at detection time ("" outside git and
 	// before the first commit) — the finer half of write-time provenance.
 	Commit string
+	// DBPath is where this board's database lives: inside the git dir for
+	// repositories (so all worktrees share one board and `git clean`
+	// cannot touch it), in a .stickit directory otherwise. The board is
+	// born, moves and dies with its project.
+	DBPath string
 }
 
 // Detect resolves the board for the current working directory.
@@ -75,14 +76,18 @@ func Detect() (Board, error) {
 			return Board{
 				Root:     root,
 				TopLevel: top,
-				Key:      key(root),
 				InGit:    true,
 				Branch:   branch,
 				Commit:   commit,
+				DBPath:   filepath.Join(abs, "stickit", "board.db"),
 			}, nil
 		}
 	}
-	return Board{Root: cwd, TopLevel: cwd, Key: key(cwd)}, nil
+	return Board{
+		Root:     cwd,
+		TopLevel: cwd,
+		DBPath:   filepath.Join(cwd, ".stickit", "board.db"),
+	}, nil
 }
 
 // Author returns the note author: NOTES_AGENT for agents, the git user name
@@ -103,12 +108,6 @@ func Author(b Board) string {
 // reads: notes are validated against the reader's own worktree.
 func (b Board) LocalPath(rel string) string {
 	return filepath.Join(b.TopLevel, filepath.FromSlash(rel))
-}
-
-// key derives the stable board identifier from its root path.
-func key(root string) string {
-	sum := sha256.Sum256([]byte(root))
-	return hex.EncodeToString(sum[:8])
 }
 
 // git runs one git command in dir and returns its trimmed stdout.

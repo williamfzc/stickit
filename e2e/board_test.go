@@ -2,29 +2,36 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 )
 
-// Two distinct repos sharing one database keep separate boards: notes never
-// leak across repos even when the file paths coincide.
-func TestReposAreIsolatedInSharedDatabase(t *testing.T) {
-	env := baseEnv(filepath.Join(t.TempDir(), "stickit.db")) // one database, two repos
-	repoA := newGitRepo(t, env)
-	repoB := newGitRepo(t, env)
-	writeLines(t, filepath.Join(repoA, "file.go"), "one", "two")
-	writeLines(t, filepath.Join(repoB, "file.go"), "one", "two")
-	a := mustAdd(t, repoA, env, "file.go:1", "pinned in repo A")
-	b := mustAdd(t, repoB, env, "file.go:1", "pinned in repo B")
+// The board lives in the workspace: its database sits inside the git dir,
+// so renaming the project keeps every note, and deleting the project
+// removes the board with it — nothing is orphaned on the machine.
+func TestTheBoardMovesWithTheWorkspace(t *testing.T) {
+	env := defaultEnv(t)
+	repo := newGitRepo(t, env)
+	writeLines(t, filepath.Join(repo, "file.go"), "one", "two")
+	n := mustAdd(t, repo, env, "file.go:1", "pinned in the workspace")
 
-	gotA := singleNote(t, mustList(t, repoA, env), "ls in repo A")
-	if gotA.ID != a.ID || gotA.Body != a.Body {
-		t.Fatalf("ls in repo A = %+v, want only repo A's note %s", gotA, a.ID)
+	if _, err := os.Stat(filepath.Join(repo, ".git", "stickit", "board.db")); err != nil {
+		t.Fatalf("the board database must live in the git dir: %v", err)
 	}
-	gotB := singleNote(t, mustList(t, repoB, env), "ls in repo B")
-	if gotB.ID != b.ID || gotB.Body != b.Body {
-		t.Fatalf("ls in repo B = %+v, want only repo B's note %s", gotB, b.ID)
+
+	renamed := filepath.Join(filepath.Dir(repo), "renamed")
+	if err := os.Rename(repo, renamed); err != nil {
+		t.Fatal(err)
+	}
+	got := singleNote(t, mustList(t, renamed, env), "ls after rename")
+	if got.ID != n.ID {
+		t.Fatalf("rename lost the note: got %s, want %s", got.ID, n.ID)
+	}
+	requireBranch(t, got, "main", "after rename")
+	if err := os.RemoveAll(renamed); err != nil {
+		t.Fatal(err)
 	}
 }
 

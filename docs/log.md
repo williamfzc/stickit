@@ -13,6 +13,18 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-19 (workspace-local storage)
+
+- The board's database moved into the workspace — `<git-dir>/stickit/`
+  for repositories (all worktrees share it via the common dir; `git
+  clean` cannot reach it), `.stickit/` for plain directories. Decided
+  by the user; motivated by the rehearsal's orphaned-board evidence.
+  The rename acceptance test then caught the last path-hash scoping
+  orphaning every note anyway, so the `repo` column and board keys
+  retired together with the global database: **the file is the board**.
+  `STICKIT_DB` remains the override (tests, explicit merges); `dump`
+  backs up the current board.
+
 ### 2026-09-19 (subtraction)
 
 - The periphery had outgrown the product; cut back. The gate's policy

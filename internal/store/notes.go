@@ -41,7 +41,6 @@ type Note struct {
 // NewNote carries everything add needs to record one note. The hashes cover
 // the anchored lines at write time; both empty for file-level notes.
 type NewNote struct {
-	RepoKey  string
 	File     string
 	Start    int
 	End      int
@@ -91,7 +90,7 @@ func (s *Store) AddNote(n NewNote) (Note, error) {
 		return Note{}, err
 	}
 	defer tx.Rollback()
-	if err := maintain(tx, n.RepoKey); err != nil {
+	if err := maintain(tx); err != nil {
 		return Note{}, err
 	}
 	id, err := freshID(tx)
@@ -100,10 +99,10 @@ func (s *Store) AddNote(n NewNote) (Note, error) {
 	}
 	ts := now()
 	_, err = tx.Exec(`INSERT INTO notes
-		(id, repo, file, start_line, end_line, content_hash, norm_hash,
+		(id, file, start_line, end_line, content_hash, norm_hash,
 		 body, tags, author, branch, "commit", status, created_at, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'active', ?, ?)`,
-		id, n.RepoKey, n.File, nullInt(n.Start), nullInt(n.End),
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,'active', ?, ?)`,
+		id, n.File, nullInt(n.Start), nullInt(n.End),
 		nullStr(n.Hash), nullStr(n.NormHash), n.Body,
 		nullStr(strings.Join(ParseTags(n.Body), " ")),
 		n.Author, nullStr(n.Branch), nullStr(n.Commit), ts, ts)
@@ -116,22 +115,22 @@ func (s *Store) AddNote(n NewNote) (Note, error) {
 	if err := tx.Commit(); err != nil {
 		return Note{}, err
 	}
-	return s.getNote(n.RepoKey, id)
+	return s.getNote(id)
 }
 
 // Resolve archives a note. Idempotent: resolving an already-archived note
 // succeeds.
-func (s *Store) Resolve(repoKey, id string) (Note, error) {
+func (s *Store) Resolve(id string) (Note, error) {
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return Note{}, err
 	}
 	defer tx.Rollback()
-	if err := maintain(tx, repoKey); err != nil {
+	if err := maintain(tx); err != nil {
 		return Note{}, err
 	}
-	res, err := tx.Exec(`UPDATE notes SET status = 'archived', updated_at = ? WHERE id = ? AND repo = ?`,
-		now(), id, repoKey)
+	res, err := tx.Exec(`UPDATE notes SET status = 'archived', updated_at = ? WHERE id = ?`,
+		now(), id)
 	if err != nil {
 		return Note{}, err
 	}
@@ -145,12 +144,11 @@ func (s *Store) Resolve(repoKey, id string) (Note, error) {
 	if err := tx.Commit(); err != nil {
 		return Note{}, err
 	}
-	return s.getNote(repoKey, id)
+	return s.getNote(id)
 }
 
 // Filter selects notes from one board.
 type Filter struct {
-	RepoKey string
 	// File is an exact board-relative file when FileIsDir is false, or a
 	// directory prefix ("src/") when true; "" for the whole board.
 	File      string
@@ -306,8 +304,8 @@ type anchorState struct {
 }
 
 func (s *Store) candidates(f Filter, ids []string, rank map[string]int) ([]Note, error) {
-	q := `SELECT id, content_hash, norm_hash FROM notes WHERE repo = ?`
-	args := []any{f.RepoKey}
+	q := `SELECT id, content_hash, norm_hash FROM notes WHERE 1=1`
+	var args []any
 	if ids != nil {
 		if len(ids) == 0 {
 			return nil, nil
@@ -344,7 +342,7 @@ func (s *Store) candidates(f Filter, ids []string, rank map[string]int) ([]Note,
 			return nil, err
 		}
 		states[id] = anchorState{hash: hash.String, norm: norm.String}
-		n, err := s.getNote(f.RepoKey, id)
+		n, err := s.getNote(id)
 		if err != nil {
 			return nil, err
 		}
@@ -465,10 +463,10 @@ func (s *Store) revalidate(notes []Note, content Content) error {
 	return tx.Commit()
 }
 
-// DumpJSONL writes every note in the store, all boards, as JSON lines —
-// the backup surface, not part of the agent contract.
+// DumpJSONL writes every note on this board as JSON lines — the backup
+// surface, not part of the agent contract.
 func (s *Store) DumpJSONL(w io.Writer) error {
-	rows, err := s.DB.Query(`SELECT id, repo FROM notes ORDER BY repo, file, created_at`)
+	rows, err := s.DB.Query(`SELECT id FROM notes ORDER BY file, created_at`)
 	if err != nil {
 		return err
 	}
@@ -476,29 +474,25 @@ func (s *Store) DumpJSONL(w io.Writer) error {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	for rows.Next() {
-		var id, repo string
-		if err := rows.Scan(&id, &repo); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			return err
 		}
-		n, err := s.getNote(repo, id)
+		n, err := s.getNote(id)
 		if err != nil {
 			return err
 		}
-		dump := struct {
-			Note
-			Repo string `json:"repo"`
-		}{n, repo}
-		if err := enc.Encode(dump); err != nil {
+		if err := enc.Encode(n); err != nil {
 			return err
 		}
 	}
 	return rows.Err()
 }
 
-func (s *Store) getNote(repoKey, id string) (Note, error) {
+func (s *Store) getNote(id string) (Note, error) {
 	row := s.DB.QueryRow(`SELECT id, file, start_line, end_line, status, drifted_at,
 		tags, author, branch, "commit", body, created_at, updated_at
-		FROM notes WHERE id = ? AND repo = ?`, id, repoKey)
+		FROM notes WHERE id = ?`, id)
 	var n Note
 	var tags, driftedAt sql.NullString
 	var start, end sql.NullInt64
@@ -537,8 +531,8 @@ func (s *Store) getNote(repoKey, id string) (Note, error) {
 // maintain is the lazy half of "maintenance is behavior": every write path
 // expires stale #handoff notes. Nothing is ever deleted — notes are
 // resolved or archived, and archives are permanent.
-func maintain(tx *sql.Tx, repoKey string) error {
-	rows, err := tx.Query(`SELECT id, tags FROM notes WHERE repo = ? AND status = 'stale'`, repoKey)
+func maintain(tx *sql.Tx) error {
+	rows, err := tx.Query(`SELECT id, tags FROM notes WHERE status = 'stale'`)
 	if err != nil {
 		return err
 	}

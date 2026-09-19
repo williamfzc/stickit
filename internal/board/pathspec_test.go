@@ -27,7 +27,7 @@ func wtBoard(t *testing.T) (Board, string) {
 	if err := os.WriteFile(file, []byte("l1\nl2\nl3\nl4\nl5\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return Board{Root: main, TopLevel: wt, Key: key(main), InGit: true, Branch: "feature-x"}, file
+	return Board{Root: main, TopLevel: wt, InGit: true, Branch: "feature-x"}, file
 }
 
 func TestRelFromBoardWorktree(t *testing.T) {
