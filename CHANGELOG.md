@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `add` targets accept filenames containing colons: when the whole spec
+  names an existing file, a non-numeric `:suffix` is part of the name.
+  Line counting against the real file also unified, so empty and
+  blank-line files report their true length in target errors.
 - Removed `--reply-to` and note threads: no collaboration shape needed
   them — a wrong note is resolved as-is (archived notes stay reachable
   via `ls --all`) and a corrected fact is a fresh note. Notes no longer

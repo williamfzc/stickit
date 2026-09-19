@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/williamfzc/stickit/internal/anchor"
 )
 
 // Target is a resolved pin location for add.
@@ -25,10 +27,7 @@ var lineSpec = regexp.MustCompile(`^([0-9]+)(?:-([0-9]+))?$`)
 // ParseTarget resolves an add target like "file", "file:40" or "file:40-50"
 // against the board.
 func ParseTarget(b Board, spec string) (Target, error) {
-	file, ls := spec, ""
-	if i := strings.LastIndex(spec, ":"); i >= 0 {
-		file, ls = spec[:i], spec[i+1:]
-	}
+	file, ls := splitTarget(spec)
 	if file == "" {
 		return Target{}, fmt.Errorf("invalid target %q: missing file", spec)
 	}
@@ -65,16 +64,34 @@ func ParseTarget(b Board, spec string) (Target, error) {
 	t.File = rel
 	t.AbsPath = abs
 	if t.Start > 0 {
-		lines, err := os.ReadFile(abs)
+		lines, err := anchor.ReadLines(abs)
 		if err != nil {
 			return Target{}, err
 		}
-		n := strings.Count(strings.TrimSuffix(string(lines), "\n"), "\n") + 1
-		if t.End > n {
-			return Target{}, fmt.Errorf("invalid target %q: line range must satisfy 1 <= start <= end <= %d (file has %d lines)", spec, n, n)
+		if t.End > len(lines) {
+			return Target{}, fmt.Errorf("invalid target %q: line range must satisfy 1 <= start <= end <= %d (file has %d lines)", spec, len(lines), len(lines))
 		}
 	}
 	return t, nil
+}
+
+// splitTarget separates "file:lines" at the last colon. A trailing segment
+// that is not a line spec belongs to the filename when the whole spec names
+// a real file (names may contain colons); otherwise the split stands, so a
+// malformed line spec still teaches the syntax in the error.
+func splitTarget(spec string) (file, ls string) {
+	i := strings.LastIndex(spec, ":")
+	if i < 0 {
+		return spec, ""
+	}
+	suffix := spec[i+1:]
+	if lineSpec.MatchString(suffix) {
+		return spec[:i], suffix
+	}
+	if _, err := os.Stat(spec); err == nil {
+		return spec, ""
+	}
+	return spec[:i], suffix
 }
 
 // RelFromBoard normalizes a user-supplied path (cwd-relative or absolute,

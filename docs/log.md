@@ -13,6 +13,18 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-19 (review pass dispositions)
+
+- Full-repo review pass; three taste-level findings dispositioned:
+  (1) targets with a colon in the filename now parse — the whole spec
+  naming an existing file wins over the `:lines` split, malformed line
+  specs keep their instructive error; line counting unified on
+  anchor.ReadLines, which also fixed blank-line files reporting one line.
+  (2) The README carries the skill snippet verbatim on purpose — it is
+  the front door, the one place duplication is load-bearing;
+  [design](design.md) stays canonical for the contract, and this entry
+  is the named resolution the charter demands.
+
 ### 2026-09-19 (threads removed)
 
 - Removed `--reply-to` and the threads table. The audit question was not

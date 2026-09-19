@@ -80,6 +80,23 @@ func TestAnchorLifecycle(t *testing.T) {
 	requireStatus(t, got, "stale", "after moving content beyond reach")
 }
 
+// A file whose name contains a colon pins like any other: a numeric suffix
+// after it is a line spec, the bare name is a file-level target.
+func TestAddTargetWithColonInName(t *testing.T) {
+	env := newEnv(t)
+	dir := newPlainDir(t)
+	writeLines(t, filepath.Join(dir, "weird:name.txt"), "one", "two")
+
+	n := mustAdd(t, dir, env, "weird:name.txt:2", "pinned on a colon name")
+	requireAnchor(t, n, 2, 2, "colon name with lines")
+	if n.File != "weird:name.txt" {
+		t.Fatalf("colon name: file = %q, want weird:name.txt", n.File)
+	}
+
+	byName := mustAdd(t, dir, env, "weird:name.txt", "file-level on a colon name")
+	requireNoAnchor(t, byName, "colon name file-level")
+}
+
 // A #handoff note whose file vanished expires outright: hidden from the
 // default board, archived under --all. A #gotcha note on the same missing
 // file stays visible, flagged stale.

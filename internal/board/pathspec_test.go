@@ -55,6 +55,14 @@ func TestRelFromBoardRejectsEscape(t *testing.T) {
 func TestParseTargetForms(t *testing.T) {
 	b, _ := wtBoard(t)
 	t.Chdir(b.TopLevel) // user paths resolve against the working directory
+	colon := filepath.Join(b.TopLevel, "weird:name.txt")
+	if err := os.WriteFile(colon, []byte("l1\nl2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	empty := filepath.Join(b.TopLevel, "empty.txt")
+	if err := os.WriteFile(empty, []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	cases := []struct {
 		spec      string
 		file      string
@@ -68,9 +76,14 @@ func TestParseTargetForms(t *testing.T) {
 		{spec: "src/a.go:1-x", wantError: true},  // malformed lines
 		{spec: "src/a.go:1-99", wantError: true}, // range past EOF
 		{spec: "src", wantError: true},           // a directory, not a file
+		{spec: "empty.txt:1", wantError: true},   // an empty file has no lines
 		{spec: "src/a.go", file: "src/a.go"},
 		{spec: "src/a.go:1", file: "src/a.go", start: 1, end: 1},
 		{spec: "src/a.go:2-3", file: "src/a.go", start: 2, end: 3},
+		// A name containing a colon: the whole spec names a real file, and a
+		// numeric suffix after it is still a line spec.
+		{spec: "weird:name.txt", file: "weird:name.txt"},
+		{spec: "weird:name.txt:2", file: "weird:name.txt", start: 2, end: 2},
 	}
 	for _, c := range cases {
 		tg, err := ParseTarget(b, c.spec)
