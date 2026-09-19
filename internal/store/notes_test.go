@@ -222,24 +222,26 @@ func TestMaintainExpiresStaleHandoffsOnWrite(t *testing.T) {
 	}
 }
 
-func TestGCAfterRetention(t *testing.T) {
+// Archived notes are permanent: GC was removed deliberately — resolved
+// history is the audit trail, and it costs nothing to keep.
+func TestArchivedNotesAreNeverDeleted(t *testing.T) {
 	s := openStore(t)
 	f := files{"a.go": "one\n"}
 	n := addNote(t, s, f, "a.go", 1, 1, "old")
 	if _, err := s.Resolve("k1", n.ID); err != nil {
 		t.Fatal(err)
 	}
-	old := time.Now().UTC().Add(-Retention - time.Hour).Format(timeLayout)
+	old := time.Now().UTC().Add(-365 * 24 * time.Hour).Format(timeLayout)
 	if _, err := s.DB.Exec(`UPDATE notes SET updated_at = ? WHERE id = ?`, old, n.ID); err != nil {
 		t.Fatal(err)
 	}
-	addNote(t, s, f, "b.go", 0, 0, "trigger gc") // maintain must drop it for good
+	addNote(t, s, f, "b.go", 0, 0, "a write later")
 	var cnt int
 	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM notes WHERE id = ?`, n.ID).Scan(&cnt); err != nil {
 		t.Fatal(err)
 	}
-	if cnt != 0 {
-		t.Fatal("archived note past retention must be garbage-collected")
+	if cnt != 1 {
+		t.Fatal("an archived note must survive writes, however old it is")
 	}
 }
 

@@ -13,6 +13,25 @@ document when one exists.
 
 ## Entries
 
+### 2026-09-19 (permanent retention, adopter-owned enforcement)
+
+- The 30-day GC is gone: archived notes are permanent. Every surveyed
+  product keeps resolved history forever, resolved history is the audit
+  trail (why-code), and the rows cost nothing. `#handoff` expiry is
+  unchanged — it archives, never deletes. Decision with the user.
+- Swarm review surfaced that the board-wide gate deadlocks parallel
+  agents: one agent's open WIP notes blocked every colleague's commit.
+  Resolution per the user's principle: enforcement is the adopter's to
+  shape, so the gate now carries a policy choice (`all` default, `own`
+  for swarms) in the copied script, overridable via
+  `STICKIT_GATE_POLICY`. No CLI change — the gate is a client.
+- docs/hooks.md reframed as Clients & integrations, stating the product
+  principle: the three verbs are the whole protocol; integrations are
+  clients the adopter copies and owns (git hooks, agent-runtime hooks,
+  future plugins). stickit ships reference clients only. The edit-time
+  injection client (`hooks/pre-tool-use`) joins the gate as the second
+  reference client — the entry half of enforcement.
+
 ### 2026-09-19 (review pass dispositions)
 
 - Full-repo review pass; three taste-level findings dispositioned:

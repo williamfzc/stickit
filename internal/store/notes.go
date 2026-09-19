@@ -14,10 +14,6 @@ import (
 	"github.com/williamfzc/stickit/internal/anchor"
 )
 
-// Retention is how long archived notes survive before the lazy GC on write
-// paths drops them for good.
-const Retention = 30 * 24 * time.Hour
-
 // ErrNotFound is returned when a note id does not exist in the board.
 var ErrNotFound = errors.New("note not found")
 
@@ -539,7 +535,8 @@ func (s *Store) getNote(repoKey, id string) (Note, error) {
 }
 
 // maintain is the lazy half of "maintenance is behavior": every write path
-// expires stale #handoff notes and GCs archived notes past retention.
+// expires stale #handoff notes. Nothing is ever deleted — notes are
+// resolved or archived, and archives are permanent.
 func maintain(tx *sql.Tx, repoKey string) error {
 	rows, err := tx.Query(`SELECT id, tags FROM notes WHERE repo = ? AND status = 'stale'`, repoKey)
 	if err != nil {
@@ -568,35 +565,6 @@ func maintain(tx *sql.Tx, repoKey string) error {
 	for _, id := range expired {
 		if _, err := tx.Exec(`UPDATE notes SET status = 'archived', updated_at = ? WHERE id = ?`, now(), id); err != nil {
 			return err
-		}
-	}
-	cutoff := time.Now().UTC().Add(-Retention).Format(timeLayout)
-	gone, err := tx.Query(`SELECT id FROM notes WHERE repo = ? AND status = 'archived' AND updated_at < ?`, repoKey, cutoff)
-	if err != nil {
-		return err
-	}
-	var dead []string
-	for gone.Next() {
-		var id string
-		if err := gone.Scan(&id); err != nil {
-			gone.Close()
-			return err
-		}
-		dead = append(dead, id)
-	}
-	if err := gone.Err(); err != nil {
-		gone.Close()
-		return err
-	}
-	gone.Close()
-	for _, id := range dead {
-		for _, q := range []string{
-			`DELETE FROM fts WHERE ref_id = ?`,
-			`DELETE FROM notes WHERE id = ?`,
-		} {
-			if _, err := tx.Exec(q, id); err != nil {
-				return err
-			}
 		}
 	}
 	return nil

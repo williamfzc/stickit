@@ -82,9 +82,9 @@ Raw mechanism notes, so the survey survives without re-fetching:
    states "done". Reopen always exists.
 3. **Closed ≠ deleted.** Resolved threads collapse into a history view
    (Docs comment history, Figma panel, GitHub's resolved-but-visible).
-   Notably, every surveyed product keeps resolved history *forever*;
-   stickit's 30-day GC of archived notes is more aggressive than all of
-   them — worth revisiting if an audit need ever appears.
+   Every surveyed product keeps resolved history forever; stickit now
+   does too — the 30-day GC was removed, matching the norm and the
+   audit value of why-code history.
 4. **Anchoring plus outdating.** Notes are pinned to a position; when the
    content moves, products badge (`Outdated`), resurface (Reviewable), or
    invalidate attached verdicts (Gerrit vote reset, GitHub approval
@@ -123,8 +123,6 @@ recognized instead of reinvented:
 - **Typed closure** (won't-fix / obsolete, à la Linear's canceled) — only
   when a loop drowns in notes that were "addressed by making them wrong".
 - **Assignee / mentions** — when a human joins the loop (mechanism 7).
-- **Retention question** — if a resolved-note audit need appears, revisit
-  the 30-day GC before reaching for it.
 
 ## Sources
 

@@ -58,7 +58,7 @@ Zero required flags. Everything else dissolves:
 | author identity | `NOTES_AGENT` env var (agents), git user.name fallback (humans) |
 | full-text search | positional keyword arg → FTS5 (multi-token = AND over the note's body) |
 | drift / staleness | lazy re-validation inside every read; no `doctor` verb |
-| expiry & GC | lazy, on write paths; `#handoff` notes archive when task completes |
+| expiry | lazy, on write paths; `#handoff` notes archive when task completes — nothing is ever deleted |
 | backup | hidden `stickit dump` → JSONL (not part of the agent surface) |
 
 Interface-area metric: **everything an agent must learn fits in three skill lines.**
@@ -111,7 +111,8 @@ Staleness is a live view, not history: a stale note whose content matches again 
 restored to `active`. Resolved (archived) notes are terminal — later reads never
 re-stale or resurrect them. `#gotcha`-style notes that go stale stay
 visible-but-flagged; `#handoff` notes expire outright. Staleness never destroys
-data — only `resolve`/GC does.
+data — only `resolve` does. Archived notes are permanent: resolved history
+is the audit trail, and it costs nothing to keep.
 
 ## Deliberate non-goals (v1)
 
@@ -125,6 +126,9 @@ data — only `resolve`/GC does.
 
 - **Data loss** (all notes live in one dotfile): `stickit dump`; document backup.
 - **Cross-repo leakage on shared machines**: strict repo scoping by default.
+- **Machine-local boards**: the store lives on one machine; agents on
+  different machines (SSH remotes, CI containers) see different boards.
+  `dump`/`rebuild` is the seam for moving a board when that matters.
 - **Adoption**: ship a copy-paste skill/AGENTS.md snippet (`stickit --skill`,
   routed to from `--help`); agents must degrade gracefully when the binary is
   absent (CI/containers).

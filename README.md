@@ -68,8 +68,10 @@ agents there).
 Nothing to configure: install the binary, then point agents at the
 contract — paste `stickit --skill` (three lines) into the repo's
 AGENTS.md, or rely on the agent finding it through `stickit --help`.
+Finding notes by tag works through plain search: `stickit ls handoff`.
 To make the review loop close mechanically instead of on discipline,
-install the [pre-commit gate](docs/hooks.md).
+adopt the [reference clients](docs/hooks.md) — the pre-commit gate, and
+edit-time injection so agents see a file's notes before editing it.
 
 ## License
 

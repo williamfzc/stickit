@@ -1,33 +1,43 @@
 ---
 type: Concept
-title: Enforcement hooks
-description: The pre-commit gate that refuses commits until the board's notes are handled, and how to install it.
+title: Clients & integrations
+description: The principle that integrations are adopter-owned clients of the CLI, and the two reference clients shipped with the repo — the pre-commit gate and edit-time injection.
 ---
 
-# Enforcement hooks
+# Clients & integrations
 
-The CLI carries no enforcement — hooks are clients of the protocol, not
-part of it. The shipped one closes the review loop in
-[stories](stories.md): a commit is refused while the board still has
-unprocessed notes, so "round until the board is clear" is mechanical
-rather than behavioral.
+The CLI is the whole protocol; everything an adopting repo adds around it
+is a **client the adopter copies and owns** — a git hook, an agent-runtime
+hook, a future plugin. stickit ships reference clients in `hooks/`, never
+product surface: nothing here is a command, flag, or schema change, and a
+repo that never copies them loses nothing. The two that matter:
 
-## What it checks
+- **the pre-commit gate** — the exit: a commit is refused while notes the
+  adopter's policy holds open remain unresolved.
+- **edit-time injection** — the entry: an agent is shown a file's notes in
+  the same turn it decides to edit, so the gate stays a backstop instead
+  of the first notice.
 
-`hooks/pre-commit` runs `stickit ls` against the board of the repo being
-committed to and fails the commit while any note comes back — `active`
-or `stale` count as open; only `resolve` (which archives) clears one.
-The refusal lists every open note with id, location, status, author and
-body, and the two ways to handle one:
+## Reference client: the pre-commit gate
 
-- address it, then `stickit resolve <id>`
-- a note that no longer applies: resolve it as-is — archived notes stay
-  reachable via `ls --all`, and a corrected fact is a fresh note
+`hooks/pre-commit` runs `stickit ls` against the committing repo's board
+and fails the commit while open notes remain — `active` or `stale` count
+as open; only `resolve` (which archives) clears one.
 
-## Install (per repo)
+**The blocking policy is the adopter's choice**, set once in the copied
+script (or overridden per run with `STICKIT_GATE_POLICY`):
 
-Fetch the hook into the target repo, make it executable, and point git
-at it — from a stickit checkout or straight from the repository:
+| policy | blocks on | right for |
+|---|---|---|
+| `all` (default) | every open note | one agent or human working a repo at a time — "the board is clear" is the loop's exit |
+| `own` | notes authored by this agent (`NOTES_AGENT`) or unauthored; other agents' notes are listed, not blocking | parallel swarms sharing one board, where co-workers legitimately carry open WIP notes |
+
+`own` exists because the shared board makes the `all` policy deadlock a
+swarm: one agent's mid-flight `#handoff` would block every colleague's
+commit. Humans have no `NOTES_AGENT`, so a human commit is always gated
+by everything.
+
+### Install (per repo)
 
 ```sh
 mkdir -p hooks
@@ -40,13 +50,35 @@ git config core.hooksPath hooks
 `core.hooksPath` is what makes the gate apply to every clone that checks
 out the config; `.git/hooks` would be per-clone and untracked.
 
-## Deliberate properties
+## Reference client: edit-time injection
 
-- **Fail-open**: without the binary, or on a store error, commits pass.
+`hooks/pre-tool-use` is an agent-runtime hook: it reads the runtime's
+tool event, asks the board what is pinned on the file about to be
+edited, and returns it as context for that exact turn. For Claude Code,
+wire it in the repo's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [{ "type": "command", "command": "python3 hooks/pre-tool-use" }]
+      }
+    ]
+  }
+}
+```
+
+Silence is free: no notes, no binary, no output — the hook must never
+become the thing that slows an unrelated edit down.
+
+## Deliberate properties (both clients)
+
+- **Fail-open**: without the binary, or on a store error, work proceeds.
   Agents must degrade gracefully when stickit is absent (see
   [design](design.md)); a gate that wedges work would violate that.
-- **Board-wide, not diff-scoped**: any open note blocks any commit. This
-  is the story's exit condition stated literally; diff intersection was
-  considered and dropped as a harder-to-reason-about variant.
-- **No bypass advertised to agents**: the refusal message never mentions
+- **No bypass advertised to agents**: the gate's refusal never mentions
   `--no-verify`. Humans keep it as the escape hatch.
+- **Copied, not imported**: each repo owns its copy and its policy; the
+  reference clients in this repo are starting points, not a framework.
